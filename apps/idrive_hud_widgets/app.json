@@ -2,7 +2,7 @@
   "id": "idrive_hud_widgets",
   "title": "TJM HUD Widgets",
   "description": "Gear, shift lights, boost, oil, coolant and intake temperatures, a G-meter and trip figures on the windshield HUD, in Classic, M or Night themes",
-  "version": "0.12.6",
+  "version": "0.12.9",
   "vendor": "TJM",
   "loggingId": "OB20",
   "iconGlyph": "HUD",
