@@ -243,10 +243,16 @@ def build_ui(spec, language='en', hmi='ID7'):
         strings[s] = text
         return {cell: {'value': s, 'type': 'StringId'}}
 
-    def settings_items(items):
+    def settings_items(items, skip=()):
         for s in spec['settings']:
-            if s.get('hidden'):
+            if s.get('hidden') or s['key'] in skip:
                 continue
+            setting_item(s, items)
+        settings_tail(items)
+
+    # TJM (from bimmer-lab): one setting's row, also placed on its own by ["setting", key] in a menu
+    def setting_item(s, items):
+        if True:
             name = 'SET_' + s['key'].upper()
             if s['type'] == 'bool':
                 row = text_row('SET_' + s['key'], s['label'])
@@ -260,7 +266,7 @@ def build_ui(spec, language='en', hmi='ID7'):
                 if id8:
                     items.append(comp('tworow', name, rows=[{'Text1stRow': {'value': hmi_text(s['label']), 'type': 'Text'},
                                                             'Text2ndRow': {'value': '', 'type': 'Text'}}]))
-                    continue
+                    return
                 did = nid()
                 items.append((did, [f'            <component id="{did}" type="dropDownMenu"/>'], {
                     'type': 'dropDownMenu', 'name': name,
@@ -272,6 +278,8 @@ def build_ui(spec, language='en', hmi='ID7'):
                 strings[sid(app, 'SET_' + s['key'])] = s['label']
                 items.append(comp('tworow', name, rows=[{'Text1stRow': {'value': s['label'], 'type': 'Text'},
                                                         'Text2ndRow': {'value': '', 'type': 'Text'}}]))
+
+    def settings_tail(items):
         # Translated builds with a credit file only: credit for the translation (localize.py keeps its title)
         if credit(language):
             name = credit_name(language)
@@ -329,9 +337,29 @@ def build_ui(spec, language='en', hmi='ID7'):
             groups.append(('List', items))
         else:   # list / menu: components from "items" (a menu adds the settings after them)
             items = []
+            with_settings = kind == 'menu' and scr.get('settings') in (True, 'placed')
+            placed = [it[1] for it in scr.get('items', []) if it[0] == 'setting']
+            rest_done = False
             for it in scr.get('items', []):
-                kindi, name = it[0], it[1]
+                kindi = it[0]
+                if kindi in ('setting', 'settings') and not with_settings:
+                    raise SystemExit('%s: screen %s: %r needs a "menu" screen with "settings": true' % (app, scr['name'], it))
+                if kindi == 'setting':
+                    st = next((x for x in spec.get('settings', []) if x['key'] == it[1]), None)
+                    if st is None:
+                        raise SystemExit('%s: screen %s: no setting %r' % (app, scr['name'], it[1]))
+                    setting_item(st, items)
+                    continue
+                if kindi == 'settings':
+                    settings_items(items, placed)
+                    rest_done = True
+                    continue
+                name = it[1]
                 label = it[2] if len(it) > 2 else ''
+                if kindi == 'tworow':
+                    first = text_row(name, label, 'Text1stRow') if label else {'Text1stRow': {'value': '', 'type': 'Text'}}
+                    items.append(comp(kindi, name, rows=[dict(first, Text2ndRow={'value': '', 'type': 'Text'})]))
+                    continue
                 if kindi == 'twocol':
                     rows = [{'Text1stCol': {'value': label, 'type': 'Text'}, 'Text2ndCol': {'value': '', 'type': 'Text'}}]
                 elif kindi in ('graphic',):
@@ -341,8 +369,8 @@ def build_ui(spec, language='en', hmi='ID7'):
                 else:
                     rows = [text_row(name, label)] if label else [{'Text': {'value': '', 'type': 'Text'}}]
                 items.append(comp(kindi, name, rows=rows))
-            if kind == 'menu' and scr.get('settings'):
-                settings_items(items)
+            if kind == 'menu' and scr.get('settings') and scr.get('settings') != 'placed' and not rest_done:
+                settings_items(items, placed)
             groups.append(('List', items))
         if id8 and main_id is None:
             mid = HMI8_MARK_ID
