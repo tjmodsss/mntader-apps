@@ -1,0 +1,364 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "enabled",
+    "layout",
+    "units",
+    "clock",
+    "timeZone",
+    "retro",
+    "logging",
+    "startup",
+    "safety",
+    "profiles",
+    "displayUnits"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "enum": [
+        7
+      ]
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "layout": {
+      "enum": [
+        "retro80s"
+      ]
+    },
+    "units": {
+      "enum": [
+        "metric",
+        "us"
+      ]
+    },
+    "clock": {
+      "enum": [
+        "24h",
+        "12h"
+      ]
+    },
+    "timeZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "utcOffsetMinutes"
+      ],
+      "properties": {
+        "name": {
+          "enum": [
+            "Asia/Yerevan"
+          ]
+        },
+        "utcOffsetMinutes": {
+          "enum": [
+            240
+          ]
+        }
+      }
+    },
+    "retro": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tankLitres",
+        "redline",
+        "shiftBefore",
+        "coldGuard",
+        "shiftCue",
+        "showBoost",
+        "nightDim",
+        "stripClear",
+        "slots",
+        "warnOil",
+        "warnCoolant",
+        "warnBoost"
+      ],
+      "properties": {
+        "tankLitres": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 200
+            }
+          ]
+        },
+        "redline": {
+          "type": "integer",
+          "minimum": 3000,
+          "maximum": 10000
+        },
+        "shiftBefore": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "coldGuard": {
+          "type": "boolean"
+        },
+        "shiftCue": {
+          "enum": [
+            "countin",
+            "rpm"
+          ]
+        },
+        "showBoost": {
+          "type": "boolean"
+        },
+        "nightDim": {
+          "enum": [
+            "off",
+            "auto"
+          ]
+        },
+        "stripClear": {
+          "type": "boolean"
+        },
+        "slots": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "1",
+            "2"
+          ],
+          "properties": {
+            "1": {
+              "enum": [
+                "intake",
+                "rpm",
+                "oil",
+                "coolant",
+                "boost",
+                "fuel",
+                "speed",
+                "range"
+              ]
+            },
+            "2": {
+              "enum": [
+                "intake",
+                "rpm",
+                "oil",
+                "coolant",
+                "boost",
+                "fuel",
+                "speed",
+                "range"
+              ]
+            }
+          }
+        },
+        "warnOil": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 180
+        },
+        "warnCoolant": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 150
+        },
+        "warnBoost": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level"
+      ],
+      "properties": {
+        "level": {
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ]
+        }
+      }
+    },
+    "startup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "onEngineStart"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "manually",
+            "autostart"
+          ]
+        },
+        "onEngineStart": {
+          "type": "boolean",
+          "description": "Разрешать отрисовку после подтверждённого запуска двигателя, только пока процесс приложения работает. Не меняет тип запуска MGU Store."
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requireVehicleCondition",
+        "criticalReadTimeoutMs",
+        "criticalMaxAgeMs",
+        "getterRefreshMs"
+      ],
+      "properties": {
+        "requireVehicleCondition": {
+          "enum": [
+            true
+          ]
+        },
+        "criticalReadTimeoutMs": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 5000
+        },
+        "criticalMaxAgeMs": {
+          "type": "integer",
+          "minimum": 2000,
+          "maximum": 10000
+        },
+        "getterRefreshMs": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 3000
+        }
+      }
+    },
+    "language": {
+      "enum": [
+        "ru",
+        "en"
+      ],
+      "default": "ru",
+      "description": "Язык подписей. Если поле отсутствует в существующем файле, используется русский."
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "followVehicleMode",
+        "accents",
+        "gaugeMax"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "followVehicleMode": {
+          "type": "boolean"
+        },
+        "accents": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "comfort",
+            "sport",
+            "eco"
+          ],
+          "properties": {
+            "comfort": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            "sport": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            "eco": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            }
+          }
+        },
+        "gaugeMax": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "consumption",
+            "range",
+            "fuelFlow"
+          ],
+          "description": "Верхние границы только графических шкал в базовых единицах; не характеристики автомобиля и не пределы численных показаний.",
+          "properties": {
+            "consumption": {
+              "type": "number",
+              "minimum": 10,
+              "maximum": 60,
+              "description": "л/100 км; применяется к верхней шкале Eco и вертикальной шкале текущего расхода."
+            },
+            "range": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 3000,
+              "description": "км; верхняя граница вертикальной шкалы штатного запаса хода."
+            },
+            "fuelFlow": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "л/ч; верхняя граница шкалы расхода на стоянке при наличии достоверного источника."
+            }
+          }
+        }
+      }
+    },
+    "displayUnits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "speed",
+        "temperature",
+        "pressure",
+        "consumption"
+      ],
+      "properties": {
+        "speed": {
+          "enum": [
+            "kmh",
+            "mph"
+          ]
+        },
+        "temperature": {
+          "enum": [
+            "c",
+            "f"
+          ]
+        },
+        "pressure": {
+          "enum": [
+            "bar",
+            "psi"
+          ]
+        },
+        "consumption": {
+          "enum": [
+            "l100km",
+            "mpg"
+          ]
+        }
+      }
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Retro Cluster 0.2 configuration",
+  "description": "Full strict configuration. startup.mode declares requested packaging mode; changing this file never edits Store start policy. Asia/Yerevan is passed to the renderer as numeric UTC+240 minutes."
+}

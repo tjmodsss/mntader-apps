@@ -1,0 +1,112 @@
+'use strict';
+/**
+ * What the driver can actually see of each target, measured from car photos (Nov 5 2026,
+ * design/photos/calibration-2026-11-05.json next to the pictures). The renderer draws 1:1,
+ * but parts of the panel are hidden by the car and parts of the HUD fall outside the
+ * windshield window. Used by layouts.js (a warning per widget) and the bench (the car view).
+ *
+ * Plain Node 8 (the car's 8.16.2): no optional chaining, no ??, no dependencies.
+ */
+
+/** Cluster (1920x720), a G20 3 Series with Live Cockpit Professional, measured from a grid photo (Nov 11 2026, a
+ *  homography fitted to 108 grid crossings, residual 3.5 px; the black box and the P from a photo of our own theme
+ *  aligned to the bench render with SIFT). The first visible y along each vertical line [x, y]; the hood hides
+ *  everything above it. Linear between points. Bottom and sides are fully visible; the green light lamps at the
+ *  left lie outside the panel.
+ *  The X3 M40i it first came from (bimmer-lab, Nov 5 2026) had a much deeper hood at the corners:
+ *  [0,273] [100,138] [200,85] [300,57] [400,36] [500,21] ... [1600,67] [1700,84] [1800,128] [1900,196] [1920,240]. */
+const HOOD = [
+    [0, 200], [100, 145], [200, 94], [300, 52], [400, 33], [500, 24], [600, 19], [700, 13], [800, 12], [900, 13],
+    [1000, 14], [1100, 13], [1200, 15], [1300, 20], [1400, 28], [1500, 33], [1600, 48], [1700, 88], [1800, 139],
+    [1900, 205], [1920, 225],
+];
+/** BMW draws a solid black area over our panel here, in the middle of the rev dial (on the X3 it was taken for the gear
+ *  slot; on the G20 it is just a black rectangle that appears with a custom theme, with nothing in it): [x0, y0, x1, y1]. The left and top
+ *  edges are measured; the right and bottom ones are good to about 15 px. (X3: 1406, 342, 1597, 419.) */
+const BLACK_BOX = [1420, 320, 1611, 440];
+/** BMW's seat-belt warning light is drawn over us here: [x0, y0, x1, y1]. (X3: 587, 663, 626, 700.) */
+const BELT = [587, 665, 626, 720];
+/** BMW's parking-brake lamp, the red (P) in the right column, is drawn over us too (seen over our opaque theme in the
+ *  car photos of Nov 11 2026; docs/OVERLAY-REPORT.md): [x0, y0, x1, y1]. */
+const PARK_LAMP = [1838, 217, 1900, 260];
+/** The part of the 800x480 HUD target seen through the windshield: BMW's own height-adjust frame (car photo Nov 7,
+ *  measured Nov 9 2026) spans x 117..681, y ~85..395. The Nov 5 grid photo's right edge (x 600) was the phone's angle. */
+const HUD_WINDOW = { x: 120, y: 100, w: 560, h: 280 };
+/** BMW's own HUD items that draw over ours, bottom left: its speed and speed-limit sign (Comfort), and in Sport also
+ *  its segmented rev band (x ~125..335, y ~245..280, Nov 9 photos). Every layout keeps it clear: [x0, y0, x1, y1]. */
+const HUD_BMW = [120, 235, 350, 380];
+
+/** The first visible y at x on the panel (interpolated along HOOD). */
+function hoodY(x) {
+    if (x <= HOOD[0][0]) return HOOD[0][1];
+    const last = HOOD[HOOD.length - 1];
+    if (x >= last[0]) return last[1];
+    for (let i = 1; i < HOOD.length; i++) {
+        const a = HOOD[i - 1], b = HOOD[i];
+        if (x <= b[0]) return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]);
+    }
+    return last[1];
+}
+
+function overlaps(w, box) {
+    return w.x < box[2] && w.x + w.w > box[0] && w.y < box[3] && w.y + w.h > box[1];
+}
+
+/**
+ * Warnings (strings, one per problem) for the widgets ({ id, x, y, w, h }) of a layout on
+ * `target` ('panel' or 'hud'). Never throws; a widget without numeric x/y/w/h is skipped.
+ */
+function check(widgets, target) {
+    const out = [];
+    if (!Array.isArray(widgets)) return out;
+    // a frame drawn in one layer (GT3's "boxes", Dyno's "tiles"): check each box, not the full-panel layer
+    const all = [];
+    widgets.forEach((w) => {
+        const sub = w && (w.boxes || w.tiles);
+        if (Array.isArray(sub)) sub.forEach((b) => { if (b) all.push(Object.assign({}, b, { id: w.id + '.' + b.id })); });
+        else all.push(w);
+    });
+    all.forEach((w) => {
+        if (!w || typeof w.x !== 'number' || typeof w.y !== 'number' || typeof w.w !== 'number' || typeof w.h !== 'number') return;
+        const id = String(w.id);
+        if (target === 'panel') {
+            // the top edge: both corners, then a few samples along it (the hood curve is not straight)
+            const under = [];
+            const tryX = (x, what) => {
+                const d = Math.ceil(hoodY(x) - w.y);
+                if (d > 0) under.push({ d, what });
+            };
+            tryX(w.x, 'top-left corner');
+            tryX(w.x + w.w, 'top-right corner');
+            const steps = 4;
+            for (let i = 1; i < steps; i++) tryX(w.x + w.w * i / steps, 'top edge at x ' + Math.round(w.x + w.w * i / steps));
+            if (under.length) {
+                const worst = under.reduce((a, b) => (b.d > a.d ? b : a));
+                out.push(id + ': ' + worst.what + ' ' + worst.d + ' px under the hood');
+            }
+            if (overlaps(w, BLACK_BOX)) {
+                out.push(id + ': overlaps BMW\'s black area x' + BLACK_BOX[0] + '-' + BLACK_BOX[2] + ' y' + BLACK_BOX[1] + '-' + BLACK_BOX[3]);
+            }
+            if (overlaps(w, BELT)) {
+                out.push(id + ': overlaps BMW\'s seat-belt light x' + BELT[0] + '-' + BELT[2] + ' y' + BELT[1] + '-' + BELT[3]);
+            }
+            if (overlaps(w, PARK_LAMP)) {
+                out.push(id + ': overlaps BMW\'s parking-brake lamp x' + PARK_LAMP[0] + '-' + PARK_LAMP[2] + ' y' + PARK_LAMP[1] + '-' + PARK_LAMP[3]);
+            }
+        } else if (target === 'hud') {
+            const win = HUD_WINDOW;
+            const d = Math.max(
+                win.x - w.x, win.y - w.y,
+                (w.x + w.w) - (win.x + win.w), (w.y + w.h) - (win.y + win.h));
+            if (d > 0) {
+                out.push(id + ': ' + Math.ceil(d) + ' px outside the visible HUD window ' + win.x + ',' + win.y + ' ' + win.w + 'x' + win.h);
+            }
+            if (overlaps(w, HUD_BMW)) {
+                out.push(id + ': under BMW\'s own speed / Sport rev band x' + HUD_BMW[0] + '-' + HUD_BMW[2] + ' y' + HUD_BMW[1] + '-' + HUD_BMW[3]);
+            }
+        }
+    });
+    return out;
+}
+
+module.exports = { HOOD, BLACK_BOX, BELT, PARK_LAMP, HUD_WINDOW, HUD_BMW, hoodY, check };

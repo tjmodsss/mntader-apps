@@ -1,0 +1,249 @@
+{
+  "id": "manuk_retro_cluster",
+  "title": "TJM Retro Cluster",
+  "description": "Самостоятельная приборная панель Retro с настройками iDrive, русским и английским интерфейсом и раздельными единицами измерения.",
+  "version": "0.3.4",
+  "vendor": "TJM",
+  "loggingId": "OB30",
+  "iconGlyph": "RC",
+  "mguAppStartType": "manually",
+  "signals": {
+    "de.bmw.infotainment.vehicle.CDS": {
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs",
+      "statusEngineStatus": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    },
+    "de.bmw.infrastructure.VehicleInformation": {
+      "statusGearboxDrive": "s",
+      "DataPowerTrain2": "s"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "VehicleCondition": "s"
+    },
+    "de.bmw.infotainment.KombiIF": {
+      "statusRangeTankStatus": "rs",
+      "statusBordcomputerAverage": "rs",
+      "statusBordcomputerTravelData": "rs"
+    },
+    "de.bmw.infotainment.drivingexcitement.FES": {
+      "statusSwitchDriveDynamicSport2": "rs",
+      "statusActualValueTorque2": "rs",
+      "statusFESVehicleDynamicSwitchHMI": "rs"
+    },
+    "de.bmw.infotainment.vehicle.CDS2": {
+      "statusLongitudinalAccelerationMassCenter": "rs",
+      "statusLateralAccelerationMassCenter": "rs",
+      "statusInjectionVolume": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle": {
+      "statusNewCurrentUnitsStatusExt": "rs"
+    },
+    "de.bmw.infotainment.vehicle.TPMS": {
+      "statusTyrePressure": "rs",
+      "statusTyreTemperature": "rs"
+    },
+    "de.bmw.infrastructure.EnvironmentalInformation": {
+      "ExteriorTemperature": "s"
+    },
+    "de.bmw.infotainment.misc.MDrive": {
+      "dataDisplayGearbox": "s"
+    },
+    "de.bmw.chassis.VehicleStabilizationManagement": {
+      "StabilizationManagement": "s"
+    },
+    "de.bmw.infotainment.resetlogic.ResetLogic": {
+      "currentConsumption": "rs",
+      "averageConsumption": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "menu",
+      "title": "TJM Retro Cluster",
+      "items": [
+        [
+          "checkbox",
+          "SET_ENABLED",
+          "Включить приборку"
+        ],
+        [
+          "checkbox",
+          "SET_ENGINE_START",
+          "Включать при запуске двигателя"
+        ],
+        [
+          "text3",
+          "ENGINE_START_NOTE",
+          "После выключения автомобиля нужен ручной запуск приложения."
+        ],
+        [
+          "twocol",
+          "BTN_LANGUAGE",
+          "Язык"
+        ],
+        [
+          "twocol",
+          "BTN_UNITS",
+          "Единицы измерения"
+        ],
+        [
+          "button",
+          "BTN_DIAGNOSTICS",
+          "Проверка данных"
+        ],
+        [
+          "text",
+          "SETTINGS_STATUS",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "LANGUAGE",
+      "kind": "menu",
+      "title": "Язык",
+      "items": [
+        [
+          "checkbox",
+          "LANG_RU",
+          "Русский"
+        ],
+        [
+          "checkbox",
+          "LANG_EN",
+          "English"
+        ],
+        [
+          "button",
+          "BTN_LANGUAGE_BACK",
+          "Назад"
+        ]
+      ]
+    },
+    {
+      "name": "UNITS",
+      "kind": "menu",
+      "title": "Единицы измерения",
+      "items": [
+        [
+          "twocol",
+          "UNIT_SPEED",
+          "Скорость"
+        ],
+        [
+          "twocol",
+          "UNIT_TEMPERATURE",
+          "Температура"
+        ],
+        [
+          "twocol",
+          "UNIT_PRESSURE",
+          "Давление"
+        ],
+        [
+          "twocol",
+          "UNIT_CONSUMPTION",
+          "Расход"
+        ],
+        [
+          "button",
+          "BTN_UNITS_BACK",
+          "Назад"
+        ]
+      ]
+    },
+    {
+      "name": "DIAGNOSTICS",
+      "kind": "menu",
+      "title": "Проверка данных",
+      "items": [
+        [
+          "text3",
+          "DIAG_NOTE",
+          "Только чтение данных. Ничего не отправляется автоматически."
+        ],
+        [
+          "text3",
+          "DIAG_STATUS",
+          "Готово к сбору"
+        ],
+        [
+          "button",
+          "DIAG_START",
+          "Собрать данные · 30 с"
+        ],
+        [
+          "button",
+          "DIAG_CANCEL",
+          "Отменить сбор"
+        ],
+        [
+          "button",
+          "DIAG_SHOW_VALUES",
+          "Показать значения"
+        ],
+        [
+          "button",
+          "DIAG_BACK",
+          "Назад"
+        ]
+      ]
+    },
+    {
+      "name": "DIAGNOSTIC_VALUES",
+      "kind": "menu",
+      "title": "Значения отчёта",
+      "items": [
+        [
+          "tworow",
+          "DIAG_VALUE_1",
+          ""
+        ],
+        [
+          "tworow",
+          "DIAG_VALUE_2",
+          ""
+        ],
+        [
+          "tworow",
+          "DIAG_VALUE_3",
+          ""
+        ],
+        [
+          "tworow",
+          "DIAG_VALUE_4",
+          ""
+        ],
+        [
+          "button",
+          "DIAG_VALUES_PREV",
+          "Предыдущая"
+        ],
+        [
+          "button",
+          "DIAG_VALUES_NEXT",
+          "Следующая"
+        ],
+        [
+          "button",
+          "DIAG_VALUES_BACK",
+          "Назад"
+        ]
+      ]
+    }
+  ],
+  "settings": [],
+  "config": {
+    "target": "panel",
+    "statusName": "Retro Cluster",
+    "socketPath": "/dev/shm/cluster-render/render.sock",
+    "utcOffsetMinutes": 240,
+    "tankLitres": null,
+    "retroProfile": "car"
+  },
+  "license": "SEE LICENSE IN javascript/NOTICE"
+}

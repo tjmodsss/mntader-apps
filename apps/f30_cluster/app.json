@@ -1,0 +1,1181 @@
+{
+  "id": "f30_cluster",
+  "title": "TJM F30 Cluster",
+  "description": "Instrument cluster themes after the F-series 6WB look: Comfort, Sport and Eco Pro, following the drive mode",
+  "version": "0.7.13",
+  "vendor": "TJM",
+  "loggingId": "OB32",
+  "iconGlyph": "F30",
+  "signals": {
+    "de.bmw.infotainment.vehicle.CDS": {
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs"
+    },
+    "de.bmw.infotainment.vehicle.CDS2": {
+      "statusLongitudinalAccelerationMassCenter": "rs",
+      "statusLateralAccelerationMassCenter": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    },
+    "de.bmw.infotainment.drivingexcitement.FES": {
+      "statusSwitchDriveDynamicSport2": "rs",
+      "statusActualValueTorque2": "rs",
+      "statusFESVehicleDynamicSwitchHMI": "rs",
+      "statusVehicleDynamicEngine": "rs"
+    },
+    "de.bmw.infrastructure.VehicleInformation": {
+      "statusGearboxDrive": "s",
+      "DataPowerTrain2": "s"
+    },
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": [
+        "sendTasuRequest"
+      ],
+      "_broadcasts": [
+        "sendTasuResponse"
+      ]
+    },
+    "de.bmw.infotainment.KombiIF": {
+      "statusRangeTankStatus": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle": {
+      "statusNewCurrentUnitsStatusExt": "rs",
+      "_optional": "the car's pressure and temperature units, for the tyre block"
+    },
+    "de.bmw.infotainment.misc.MDrive": {
+      "dataDisplayGearbox": "s",
+      "_optional": "S or M next to the gear"
+    },
+    "de.bmw.infotainment.vehicle.TPMS": {
+      "statusTyrePressure": "rs",
+      "statusTyreTemperature": "rs",
+      "_optional": "tyre pressures and temperatures in the M theme"
+    },
+    "de.bmw.infrastructure.EnvironmentalInformation": {
+      "ExteriorTemperature": "s"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "menu",
+      "title": "TJM F30 Cluster",
+      "settings": "placed",
+      "items": [
+        [
+          "graphic",
+          "NOW_GFX"
+        ],
+        [
+          "tworow",
+          "NOW",
+          "Showing now"
+        ],
+        [
+          "setting",
+          "byMode"
+        ],
+        [
+          "setting",
+          "hudLayout"
+        ],
+        [
+          "setting",
+          "inComfort"
+        ],
+        [
+          "setting",
+          "inSport"
+        ],
+        [
+          "setting",
+          "inEco"
+        ],
+        [
+          "text",
+          "STATUS",
+          ""
+        ],
+        [
+          "text",
+          "STATUS2",
+          ""
+        ],
+        [
+          "button",
+          "BTN_GALLERY",
+          "Theme gallery"
+        ],
+        [
+          "button",
+          "BTN_SETTINGS",
+          "Settings"
+        ],
+        [
+          "text",
+          "STATUS_LOG",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "SETTINGS",
+      "kind": "settings",
+      "title": "Settings",
+      "skip": [
+        "byMode",
+        "hudLayout",
+        "inComfort",
+        "inSport",
+        "inEco"
+      ]
+    },
+    {
+      "name": "GALLERY",
+      "kind": "canvas",
+      "title": "Theme gallery",
+      "buttons": [
+        [
+          "BTN_NEXT_THEME",
+          "Next theme"
+        ],
+        [
+          "BTN_GALLERY_DONE",
+          "Done"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "hudLayout",
+      "label": "Theme",
+      "type": "choice",
+      "default": "wb_comfort",
+      "options": [
+        [
+          "off",
+          "Off (BMW's own cluster)"
+        ],
+        [
+          "wb_comfort",
+          "6WB Comfort"
+        ],
+        [
+          "wb_dials",
+          "6WB Dials + G20"
+        ],
+        [
+          "g20_comfort",
+          "G20 Comfort"
+        ],
+        [
+          "wb_sport",
+          "6WB Sport"
+        ],
+        [
+          "wb_sport_dials",
+          "6WB Sport + G20"
+        ],
+        [
+          "wb_eco",
+          "6WB Eco Pro"
+        ],
+        [
+          "f30",
+          "F30 basic"
+        ],
+        [
+          "grid",
+          "Calibration grid"
+        ],
+        [
+          "mapcal",
+          "Map calibration"
+        ]
+      ]
+    },
+    {
+      "key": "byMode",
+      "label": "Change with the drive mode",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "baked",
+      "label": "Baked 6WB textures",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "stockMap",
+      "label": "BMW map in 6WB Comfort",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "wbFoot",
+      "label": "Map window foot (6WB)",
+      "type": "choice",
+      "default": "hair",
+      "options": [
+        [
+          "hair",
+          "Hairline"
+        ],
+        [
+          "chrome",
+          "Chrome rod"
+        ],
+        [
+          "none",
+          "None"
+        ],
+        [
+          "glass",
+          "Glass bar"
+        ]
+      ]
+    },
+    {
+      "key": "dialShade",
+      "label": "Dial edge shade (+ G20 themes)",
+      "type": "choice",
+      "default": "normal",
+      "reset": 1,
+      "options": [
+        [
+          "off",
+          "Off"
+        ],
+        [
+          "weak",
+          "Weak"
+        ],
+        [
+          "normal",
+          "Normal"
+        ],
+        [
+          "strong",
+          "Strong"
+        ]
+      ]
+    },
+    {
+      "key": "ownRange",
+      "label": "Range (+ G20 themes)",
+      "type": "choice",
+      "default": "ours",
+      "reset": 1,
+      "options": [
+        [
+          "bmw",
+          "BMW's"
+        ],
+        [
+          "ours",
+          "Ours (6WB style)"
+        ]
+      ]
+    },
+    {
+      "key": "ownClock",
+      "label": "Clock (+ G20 themes)",
+      "type": "choice",
+      "default": "auto",
+      "reset": 1,
+      "options": [
+        [
+          "auto",
+          "Auto (ours if time zone set)"
+        ],
+        [
+          "bmw",
+          "BMW's"
+        ],
+        [
+          "ours",
+          "Ours (6WB style)"
+        ]
+      ]
+    },
+    {
+      "key": "ownTemp",
+      "label": "Outside temp (+ G20 themes)",
+      "type": "choice",
+      "default": "ours",
+      "reset": 1,
+      "options": [
+        [
+          "bmw",
+          "BMW's"
+        ],
+        [
+          "ours",
+          "Ours (6WB style)"
+        ]
+      ]
+    },
+    {
+      "key": "modeLabel",
+      "label": "Drive mode above gear",
+      "type": "bool",
+      "default": true,
+      "reset": 1
+    },
+    {
+      "key": "gearTray",
+      "label": "Gear tray (6WB)",
+      "type": "choice",
+      "default": "gear",
+      "reset": 1,
+      "options": [
+        [
+          "gear",
+          "Gear and number (D4)"
+        ],
+        [
+          "letter",
+          "Letter only (D)"
+        ],
+        [
+          "empty",
+          "Empty"
+        ]
+      ]
+    },
+    {
+      "key": "inComfort",
+      "label": "In Comfort",
+      "type": "choice",
+      "default": "wb_comfort",
+      "options": [
+        [
+          "off",
+          "Off (BMW's own cluster)"
+        ],
+        [
+          "wb_comfort",
+          "6WB Comfort"
+        ],
+        [
+          "wb_dials",
+          "6WB Dials + G20"
+        ],
+        [
+          "g20_comfort",
+          "G20 Comfort"
+        ],
+        [
+          "wb_sport",
+          "6WB Sport"
+        ],
+        [
+          "wb_sport_dials",
+          "6WB Sport + G20"
+        ],
+        [
+          "wb_eco",
+          "6WB Eco Pro"
+        ],
+        [
+          "f30",
+          "F30 basic"
+        ]
+      ]
+    },
+    {
+      "key": "inSport",
+      "label": "In Sport",
+      "type": "choice",
+      "default": "wb_sport",
+      "options": [
+        [
+          "off",
+          "Off (BMW's own cluster)"
+        ],
+        [
+          "wb_comfort",
+          "6WB Comfort"
+        ],
+        [
+          "wb_dials",
+          "6WB Dials + G20"
+        ],
+        [
+          "g20_comfort",
+          "G20 Comfort"
+        ],
+        [
+          "wb_sport",
+          "6WB Sport"
+        ],
+        [
+          "wb_sport_dials",
+          "6WB Sport + G20"
+        ],
+        [
+          "wb_eco",
+          "6WB Eco Pro"
+        ],
+        [
+          "f30",
+          "F30 basic"
+        ]
+      ]
+    },
+    {
+      "key": "inEco",
+      "label": "In Eco Pro",
+      "type": "choice",
+      "default": "wb_eco",
+      "options": [
+        [
+          "off",
+          "Off (BMW's own cluster)"
+        ],
+        [
+          "wb_comfort",
+          "6WB Comfort"
+        ],
+        [
+          "wb_dials",
+          "6WB Dials + G20"
+        ],
+        [
+          "g20_comfort",
+          "G20 Comfort"
+        ],
+        [
+          "wb_sport",
+          "6WB Sport"
+        ],
+        [
+          "wb_sport_dials",
+          "6WB Sport + G20"
+        ],
+        [
+          "wb_eco",
+          "6WB Eco Pro"
+        ],
+        [
+          "f30",
+          "F30 basic"
+        ]
+      ]
+    },
+    {
+      "key": "units",
+      "label": "Units",
+      "type": "choice",
+      "default": "metric",
+      "options": [
+        [
+          "metric",
+          "km/h, °C, bar"
+        ]
+      ]
+    },
+    {
+      "key": "clock",
+      "label": "Clock format",
+      "type": "choice",
+      "default": "24h",
+      "options": [
+        [
+          "12h",
+          "12-hour"
+        ],
+        [
+          "24h",
+          "24-hour"
+        ]
+      ]
+    },
+    {
+      "key": "timeZone",
+      "label": "Time zone",
+      "type": "number",
+      "default": -9999,
+      "steps": [
+        -9999,
+        -720,
+        -690,
+        -660,
+        -630,
+        -600,
+        -570,
+        -540,
+        -510,
+        -480,
+        -450,
+        -420,
+        -390,
+        -360,
+        -330,
+        -300,
+        -270,
+        -240,
+        -210,
+        -180,
+        -150,
+        -120,
+        -90,
+        -60,
+        -30,
+        0,
+        30,
+        60,
+        90,
+        120,
+        150,
+        180,
+        210,
+        240,
+        270,
+        300,
+        330,
+        360,
+        390,
+        420,
+        450,
+        480,
+        510,
+        540,
+        570,
+        600,
+        630,
+        660,
+        690,
+        720,
+        750,
+        780,
+        810,
+        840
+      ],
+      "labels": {
+        "-9999": "Automatic",
+        "-720": "UTC-12",
+        "-690": "UTC-11:30",
+        "-660": "UTC-11",
+        "-630": "UTC-10:30",
+        "-600": "UTC-10",
+        "-570": "UTC-9:30",
+        "-540": "UTC-9",
+        "-510": "UTC-8:30",
+        "-480": "UTC-8",
+        "-450": "UTC-7:30",
+        "-420": "UTC-7",
+        "-390": "UTC-6:30",
+        "-360": "UTC-6",
+        "-330": "UTC-5:30",
+        "-300": "UTC-5",
+        "-270": "UTC-4:30",
+        "-240": "UTC-4",
+        "-210": "UTC-3:30",
+        "-180": "UTC-3",
+        "-150": "UTC-2:30",
+        "-120": "UTC-2",
+        "-90": "UTC-1:30",
+        "-60": "UTC-1",
+        "-30": "UTC-0:30",
+        "0": "UTC",
+        "30": "UTC+0:30",
+        "60": "UTC+1",
+        "90": "UTC+1:30",
+        "120": "UTC+2",
+        "150": "UTC+2:30",
+        "180": "UTC+3",
+        "210": "UTC+3:30",
+        "240": "UTC+4",
+        "270": "UTC+4:30",
+        "300": "UTC+5",
+        "330": "UTC+5:30",
+        "360": "UTC+6",
+        "390": "UTC+6:30",
+        "420": "UTC+7",
+        "450": "UTC+7:30",
+        "480": "UTC+8",
+        "510": "UTC+8:30",
+        "540": "UTC+9",
+        "570": "UTC+9:30",
+        "600": "UTC+10",
+        "630": "UTC+10:30",
+        "660": "UTC+11",
+        "690": "UTC+11:30",
+        "720": "UTC+12",
+        "750": "UTC+12:30",
+        "780": "UTC+13",
+        "810": "UTC+13:30",
+        "840": "UTC+14"
+      }
+    },
+    {
+      "key": "tankLitres",
+      "label": "Fuel tank size",
+      "type": "number",
+      "unit": "L",
+      "default": 60,
+      "steps": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110
+      ]
+    },
+    {
+      "key": "redline",
+      "label": "Redline",
+      "type": "number",
+      "unit": "rpm",
+      "default": 7000,
+      "steps": [
+        5500,
+        6000,
+        6500,
+        7000,
+        7500
+      ]
+    },
+    {
+      "key": "shiftBefore",
+      "label": "Shift light before redline",
+      "type": "number",
+      "unit": "rpm",
+      "default": 300,
+      "steps": [
+        0,
+        100,
+        200,
+        300,
+        500,
+        800,
+        1000
+      ],
+      "labels": {
+        "0": "At the redline"
+      }
+    },
+    {
+      "key": "coldGuard",
+      "label": "Cold engine rev guard",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "nightDim",
+      "label": "Night colours",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Auto (after sunset)"
+        ],
+        [
+          "always",
+          "Always"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
+    },
+    {
+      "key": "badge",
+      "label": "Badge",
+      "type": "choice",
+      "default": "none",
+      "options": [
+        [
+          "none",
+          "None"
+        ],
+        [
+          "128ti",
+          "128ti"
+        ],
+        [
+          "M135i",
+          "M135i"
+        ],
+        [
+          "228i",
+          "228i"
+        ],
+        [
+          "230i",
+          "230i"
+        ],
+        [
+          "M235i",
+          "M235i"
+        ],
+        [
+          "M240i",
+          "M240i"
+        ],
+        [
+          "320i",
+          "320i"
+        ],
+        [
+          "330i",
+          "330i"
+        ],
+        [
+          "330e",
+          "330e"
+        ],
+        [
+          "M340i",
+          "M340i"
+        ],
+        [
+          "430i",
+          "430i"
+        ],
+        [
+          "M440i",
+          "M440i"
+        ],
+        [
+          "i4 eDrive40",
+          "i4 eDrive40"
+        ],
+        [
+          "i4 M50",
+          "i4 M50"
+        ],
+        [
+          "530i",
+          "530i"
+        ],
+        [
+          "530e",
+          "530e"
+        ],
+        [
+          "540i",
+          "540i"
+        ],
+        [
+          "M550i",
+          "M550i"
+        ],
+        [
+          "i5 M60",
+          "i5 M60"
+        ],
+        [
+          "740i",
+          "740i"
+        ],
+        [
+          "760i",
+          "760i"
+        ],
+        [
+          "i7 M70",
+          "i7 M70"
+        ],
+        [
+          "840i",
+          "840i"
+        ],
+        [
+          "M850i",
+          "M850i"
+        ],
+        [
+          "X1 M35i",
+          "X1 M35i"
+        ],
+        [
+          "X2 M35i",
+          "X2 M35i"
+        ],
+        [
+          "X3 30i",
+          "X3 30i"
+        ],
+        [
+          "X3 M40i",
+          "X3 M40i"
+        ],
+        [
+          "X3 M50",
+          "X3 M50"
+        ],
+        [
+          "X4 M40i",
+          "X4 M40i"
+        ],
+        [
+          "X5 40i",
+          "X5 40i"
+        ],
+        [
+          "X5 M60i",
+          "X5 M60i"
+        ],
+        [
+          "X6 M60i",
+          "X6 M60i"
+        ],
+        [
+          "X7 M60i",
+          "X7 M60i"
+        ],
+        [
+          "XM",
+          "XM"
+        ],
+        [
+          "Z4 30i",
+          "Z4 30i"
+        ],
+        [
+          "Z4 M40i",
+          "Z4 M40i"
+        ],
+        [
+          "i4",
+          "i4"
+        ],
+        [
+          "i5",
+          "i5"
+        ],
+        [
+          "i7",
+          "i7"
+        ],
+        [
+          "iX",
+          "iX"
+        ],
+        [
+          "iX M60",
+          "iX M60"
+        ],
+        [
+          "M2",
+          "M2"
+        ],
+        [
+          "M3",
+          "M3"
+        ],
+        [
+          "M4",
+          "M4"
+        ],
+        [
+          "M5",
+          "M5"
+        ],
+        [
+          "M8",
+          "M8"
+        ],
+        [
+          "X3 M",
+          "X3 M"
+        ],
+        [
+          "X4 M",
+          "X4 M"
+        ],
+        [
+          "X5 M",
+          "X5 M"
+        ],
+        [
+          "X6 M",
+          "X6 M"
+        ],
+        [
+          "B3",
+          "B3"
+        ],
+        [
+          "B4",
+          "B4"
+        ],
+        [
+          "B5",
+          "B5"
+        ],
+        [
+          "B8",
+          "B8"
+        ],
+        [
+          "XB7",
+          "XB7"
+        ],
+        [
+          "XD3",
+          "XD3"
+        ]
+      ]
+    },
+    {
+      "key": "badgeBMW",
+      "label": "BMW lettering on badge",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "demo",
+      "label": "Demo data",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Auto (until the car sends data)"
+        ],
+        [
+          "on",
+          "On"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
+    }
+  ],
+  "config": {
+    "target": "panel",
+    "statusName": "Cluster",
+    "socketPath": "/dev/shm/cluster-render/render.sock",
+    "location": {
+      "lat": 50.45,
+      "lon": 30.52
+    },
+    "utcOffsetMinutes": null,
+    "waze": {
+      "comment": "Show Waze map inside the theme (shared/waze.js): waze-on-cluster's status file (read every second) and its control socket (one short 'start' command, then closed). Paths from waze-on-cluster 0.9.3.",
+      "status": "/run/waze-on-cluster/status.json",
+      "control": "/dev/shm/waze-on-cluster/ctl.sock"
+    },
+    "_comment": "target panel: the whole 1920x720 instrument cluster, drawn over BMW's gauges. socketPath: cluster-render's documented default. location and utcOffsetMinutes: as in HUD Widgets (the clock box). tankLitres: the fuel gauge's full mark (the car sends litres, not the tank size; a G01 X3 holds 65). engine: the peak crank torque (Nm) and power (kW) the {{torquePct}} and {{powerPct}} tokens count from (an M40i: 500 Nm, 285 kW / 382 hp).",
+    "dme": {
+      "comment": "Boost from the engine unit (DME, ecu 18) over read-only UDS 0x22, only while the sport display sends no boost and a boost readout is shown. Absolute kPa, the outside air pressure (baro) is subtracted. Candidates tried in order, the first plausible one wins. From cauliflowermossgrape's car_vitals (MIT). Intake air temperature the same way (config.dme.intake, every 2 s, only while an intake readout shows); candidates from cruzen991/Cluster's signal table (MIT), unverified on this car.",
+      "ecu": 18,
+      "boost": [
+        {
+          "did": "F470",
+          "bytes": 2,
+          "at": 3,
+          "factor": 0.03125,
+          "offset": 0,
+          "min": 20,
+          "max": 600,
+          "note": "OBD PID 0x70 boost pressure control: actual boost pressure sensor A (absolute), 1/32 kPa"
+        },
+        {
+          "did": "F487",
+          "bytes": 2,
+          "at": 1,
+          "factor": 0.03125,
+          "offset": 0,
+          "min": 20,
+          "max": 600,
+          "note": "OBD PID 0x87 intake manifold absolute pressure sensor A, 1/32 kPa"
+        },
+        {
+          "did": "F40B",
+          "bytes": 1,
+          "at": 0,
+          "factor": 1,
+          "offset": 0,
+          "min": 20,
+          "max": 255,
+          "note": "OBD PID 0x0B intake manifold absolute pressure, kPa (max 255 = 1.5 bar boost)"
+        },
+        {
+          "obd": "0B",
+          "bytes": 1,
+          "at": 0,
+          "factor": 1,
+          "offset": 0,
+          "min": 20,
+          "max": 255,
+          "note": "OBD service 01 PID 0x0B (same as F40B)"
+        }
+      ],
+      "baro": [
+        {
+          "did": "F433",
+          "bytes": 1,
+          "at": 0,
+          "factor": 1,
+          "offset": 0,
+          "min": 50,
+          "max": 115,
+          "note": "OBD PID 0x33 barometric pressure, kPa (101.3 when not available)"
+        },
+        {
+          "obd": "33",
+          "bytes": 1,
+          "at": 0,
+          "factor": 1,
+          "offset": 0,
+          "min": 50,
+          "max": 115,
+          "note": "OBD service 01 PID 0x33 (same as F433)"
+        }
+      ],
+      "intake": [
+        {
+          "did": "F40F",
+          "bytes": 1,
+          "at": 0,
+          "factor": 1,
+          "offset": -40,
+          "min": -35,
+          "max": 150,
+          "note": "OBD PID 0x0F intake air temperature, C + 40"
+        },
+        {
+          "did": "F477",
+          "bytes": 1,
+          "at": 1,
+          "factor": 1,
+          "offset": -40,
+          "min": -35,
+          "max": 150,
+          "note": "OBD PID 0x77 charge air cooler temperature, bank 1 sensor 1 (byte after the support byte), C + 40"
+        },
+        {
+          "obd": "0F",
+          "bytes": 1,
+          "at": 0,
+          "factor": 1,
+          "offset": -40,
+          "min": -35,
+          "max": 150,
+          "note": "OBD service 01 PID 0x0F (same as F40F)"
+        }
+      ]
+    },
+    "tankLitres": 60,
+    "engine": {
+      "torqueNm": 500,
+      "powerKw": 285
+    },
+    "limit": null,
+    "nopass": null,
+    "msa": null,
+    "clock": null,
+    "ccm": null,
+    "drive": null,
+    "_car3": {
+      "driveShape": "{ iface, field, path: [..], map: { '<raw>': 'COMFORT' | 'COMFORT_PLUS' | 'SPORT' | 'SPORT_PLUS' | 'ECO_PRO' | 4 ... } }: the drive mode from another field than FES statusFESVehicleDynamicSwitchHMI (which gave nothing on the owner's car); the value goes through the same handler, so layout choice is unchanged. null: that FES field only.",
+      "about": "Package I (docs/CAR3-I-REPORT.md). Fields not known yet, so null: then nothing is subscribed. ./scripts/car_signals.sh root@<car> ranks the car's catalogue for each and prints these lines; each interface must also go under signals (flag s, or rs with a getter). Every new raw value is logged once ('msa raw', 'clock raw', 'check-control raw') to calibrate.",
+      "msaShape": "{ iface, field, path: [..], map: { '<raw>': 'active' | 'off' | 'stopped' | 'unavailable' | null } }: our auto start/stop sign in the 6WB layouts (hidden while active or unmapped; green while MSA has stopped the engine, the rev needle at READY; crossed out while off or unavailable)",
+      "clockShape": "{ iface, field, kind: 'offset', path: [..], factor (1: minutes, 60: hours, 1/60: seconds), dstPath: [..] + dstMinutes (60), invalid: [..] } or { iface, field, kind: 'local', hourPath: [..], minutePath: [..] }: the car's time zone for our clock, after the timeZone setting and before utcOffsetMinutes",
+      "ccmShape": "{ iface, field, kind: 'list', path: [..] (a message shows while the array is not empty) } or { iface, field, kind: 'flag', path: [..], on: [..] | off: [..] (default [0, false]) }: hud.js _raw('ccMsg'), for 6WB Dials + G20's hooks"
+    },
+    "_limit": {
+      "about": "Package E (docs/POLISH-E-REPORT.md). The speed-limit and no-overtaking signs' data source is not known yet: no public MGU app reads one, so limit / nopass stay null. Then the car shows no sign of ours (the demo drive shows 90) and 6WB Dials + G20 keeps its window over BMW's sign open. Once a field is named here and under signals, our sign is the only one: that window stays closed, black while the car has sent nothing.",
+      "find": "./scripts/car_signals.sh root@<car> copies /etc/oap/someip/someip-interfaces.json once (read only: cat) and ranks its fields for limit, nopass, msa, clock and ccm with tools/signals/catalog.py; it prints the signals entry and a config line for the best of each (docs/CAR3-I-REPORT.md).",
+      "limitShape": "{ iface, field, path: [..] (into the value), factor (1), unit: 'kmh' | 'mph', unitPath: [..] + mph: [raw unit values meaning mph], invalid: [raw: no limit known], end: [raw: end of limit / unlimited], map: { '<raw>': kmh | 'end' | 'unknown' | null } (enum fields), min (5), max (250); car3 I: unknown: [raw: BMW's empty sign '---', Speed Limit Info on but no limit known], statePath: [..] + stateMap: { '<raw>': 'unknown' | 'none' | 'end' | 'limit' } (a separate state member) }",
+      "nopassShape": "{ iface, field, path: [..], on: [raw values meaning no overtaking] (default [1, true]) }",
+      "candidates": [
+        "1. A field named after BMW's own words for the feature. The ID4-6 car data service names them driving.sliActualSpeedLimitInfo (601), driving.sliNextSpeedLimitRecognition (600), driving.sliTextMessage (599), driving.trafficSignInfo1..4 (591-594), driving.trafficSignInfoVisibility (595), driving.orInfo (598), driving.orNPITextMessage (597, No Passing Info), driving.signRecognitionFrontCamera (605): BimmerGestalt/IDriveConnectKit core/src/commonMain/kotlin/io/bimmergestalt/idriveconnectkit/CDSProperty.kt lines 176-190. Not MGU SOME/IP names: tools/signals/catalog.py greps the car's catalogue for SLI, NPI, trafficSign, speedLimit, overtaking, orInfo, signRecognition.",
+        "2. Navigation map data, only while a route runs: de.bmw.infotainment.navigation.guiding.GuidanceEventList queryContent, union members speedLimit / speedLimitAssist and speedLimitAssistInfo on each event (cauliflowermossgrape/idrive7-apps apps/redline/nav.js line 134, kit/tools/fixtures/redline-nav-carplay-2026-11-09.txt: speedLimitAssistInfo {nil: NO_VALUE} on a CarPlay route). Upcoming limits, not the sign in force; a method, not a field: not usable as config.limit as is.",
+        "3. Unverified guess: a field of the cluster's or the HUD's own data (KombiIF / KombiInterface_2 already carry the cluster's range and check-control list). If the head unit draws BMW's HUD content (cluster-render's HUD target suggests it can), its catalogue must carry the sign; the name is unknown."
+      ]
+    },
+    "menu": {
+      "hideModeRows": true,
+      "comment": "The centre screen's native menu (shared/menu.js). hideModeRows: hide In Comfort / In Sport / In Eco Pro while Change with the drive mode is off (the RHMI Visible property, not yet seen on the car; false keeps them always shown)."
+    }
+  }
+}

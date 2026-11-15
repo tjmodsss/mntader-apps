@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 7,
+  "enabled": true,
+  "layout": "retro80s",
+  "units": "metric",
+  "clock": "24h",
+  "timeZone": {
+    "name": "Asia/Yerevan",
+    "utcOffsetMinutes": 240
+  },
+  "retro": {
+    "tankLitres": 65,
+    "redline": 7000,
+    "shiftBefore": 300,
+    "coldGuard": true,
+    "shiftCue": "countin",
+    "showBoost": true,
+    "nightDim": "off",
+    "stripClear": false,
+    "slots": {
+      "1": "intake",
+      "2": "rpm"
+    },
+    "warnOil": 130,
+    "warnCoolant": 115,
+    "warnBoost": 0
+  },
+  "logging": {
+    "level": "info"
+  },
+  "startup": {
+    "mode": "manually",
+    "onEngineStart": false
+  },
+  "safety": {
+    "requireVehicleCondition": true,
+    "criticalReadTimeoutMs": 3000,
+    "criticalMaxAgeMs": 5000,
+    "getterRefreshMs": 1000
+  },
+  "language": "ru",
+  "profiles": {
+    "enabled": true,
+    "followVehicleMode": true,
+    "accents": {
+      "comfort": "#FFB21C",
+      "sport": "#FF3B30",
+      "eco": "#398BFF"
+    },
+    "gaugeMax": {
+      "consumption": 30,
+      "range": 1000,
+      "fuelFlow": 10
+    }
+  },
+  "displayUnits": {
+    "speed": "kmh",
+    "temperature": "c",
+    "pressure": "bar",
+    "consumption": "l100km"
+  }
+}

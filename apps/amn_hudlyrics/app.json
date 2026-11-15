@@ -1,0 +1,122 @@
+{
+  "id": "amn_hudlyrics",
+  "title": "TJM HUD Lyrics",
+  "description": "Synced lyrics for the song playing over CarPlay (Apple Music, Spotify...), one line at a time in the head-up display. The centre screen shows the song, the lyrics as they are sung, and a status row that says what each part is doing. The HUD is experimental and off until you switch it on in Settings; it hides during route guidance and when a song has no synced lyrics, and shares the HUD with other HUD apps (one at a time). Read-only toward the car. Lyrics from LRCLIB (lrclib.net), its only internet host, through the Store's uplink. Needs the Cluster renderer tool from the Store.",
+  "version": "0.3.0",
+  "vendor": "TJM",
+  "loggingId": "OB2F",
+  "internet": true,
+  "signals": {
+    "de.bmw.infotainment.a4a.carplay.CarPlayManager": "*",
+    "de.bmw.infotainment.entertainment.mediaplayer.MediaPlayer": "*",
+    "de.bmw.infotainment.hmi.hmimediastate.HmiMediaState": "*",
+    "de.bmw.infotainment.entertainment.dynamicmediaplayer.DynamicMediaPlayer": "*",
+    "de.bmw.infotainment.navigation.navigationstatus.NavigationStatus": {
+      "_optional": "the HUD's route guidance check (BMW navigation): guidingState ACTIVE hides the lyrics",
+      "guidingState": "rs"
+    },
+    "de.bmw.infotainment.sdi.aap.androidautoprojectedmanager.AndroidAutoProjectedManager": {
+      "_optional": "the HUD's route guidance check (Android Auto): projectedGuidanceActive",
+      "_instances": "AndroidAutoProjectedManagerInst1",
+      "projectedGuidanceActive": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "TJM HUD Lyrics",
+      "buttons": [
+        [
+          "BTN_SYNC",
+          "Song just started"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Settings"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "hud",
+      "label": "Lyrics in the HUD (experimental)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "lines",
+      "label": "HUD lines",
+      "type": "choice",
+      "default": "1",
+      "options": [
+        [
+          "1",
+          "One line"
+        ],
+        [
+          "2",
+          "Two lines (next one dim)"
+        ],
+        [
+          "3",
+          "Three lines (before, now, after)"
+        ]
+      ]
+    },
+    {
+      "key": "size",
+      "label": "HUD text size",
+      "type": "choice",
+      "default": "medium",
+      "options": [
+        [
+          "small",
+          "Small"
+        ],
+        [
+          "medium",
+          "Medium"
+        ],
+        [
+          "large",
+          "Large"
+        ]
+      ]
+    },
+    {
+      "key": "navShow",
+      "label": "Show during navigation",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "offset",
+      "label": "Lyrics timing",
+      "type": "number",
+      "unit": "ms",
+      "default": 0,
+      "steps": [
+        -3000,
+        -2000,
+        -1500,
+        -1000,
+        -750,
+        -500,
+        -250,
+        0,
+        250,
+        500,
+        750,
+        1000,
+        1500,
+        2000,
+        3000
+      ]
+    }
+  ],
+  "retiredSettings": [
+    "theme"
+  ]
+}
