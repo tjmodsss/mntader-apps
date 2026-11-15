@@ -1,8 +1,8 @@
 {
   "id": "cluster_themes",
   "title": "TJM Cluster Themes",
-  "description": "Redraws the instrument cluster: GT3 race dash, M-style, Sport, Minimal, Roadster, Track, Drag, Rally, Retro 80s, Cruise, Dyno (BMW-coloured readout tiles) or Ribbon (with holiday editions), with shift lights, boost, temps, tyres, a G-meter and a 0-60 timer",
-  "version": "0.15.0",
+  "description": "Redraws the instrument cluster: GT3 race dash, M-style, Sport, Minimal, Track, Drag, Rally, Retro 80s, Cruise, Dyno (BMW-coloured readout tiles) or Ribbon (with holiday editions), with shift lights, boost, temps, tyres, a G-meter and a 0-60 timer",
+  "version": "0.17.8",
   "vendor": "TJM",
   "loggingId": "OB1F",
   "iconGlyph": "CLU",
@@ -46,7 +46,8 @@
     },
     "de.bmw.infotainment.misc.MDrive": {
       "dataDisplayGearbox": "s",
-      "_optional": "S or M next to the gear"
+      "controlDisplayMSystems": "rs",
+      "_optional": "S or M next to the gear; controlDisplayMSystems: an M car's drive mode (issue #8)"
     },
     "de.bmw.infotainment.vehicle.TPMS": {
       "statusTyrePressure": "rs",
@@ -55,6 +56,10 @@
     },
     "de.bmw.infrastructure.EnvironmentalInformation": {
       "ExteriorTemperature": "s"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "VehicleCondition": "s",
+      "_optional": "the car switching off: no new layer while it does (cluster-render's switch-off guard)"
     }
   },
   "screens": [
@@ -96,10 +101,6 @@
         [
           "minimal",
           "Minimal"
-        ],
-        [
-          "roadster",
-          "Roadster"
         ],
         [
           "track",
@@ -172,10 +173,6 @@
           "Minimal"
         ],
         [
-          "roadster",
-          "Roadster"
-        ],
-        [
           "track",
           "Track"
         ],
@@ -232,10 +229,6 @@
           "Minimal"
         ],
         [
-          "roadster",
-          "Roadster"
-        ],
-        [
           "track",
           "Track"
         ],
@@ -290,10 +283,6 @@
         [
           "minimal",
           "Minimal"
-        ],
-        [
-          "roadster",
-          "Roadster"
         ],
         [
           "track",
@@ -435,7 +424,75 @@
         780,
         810,
         840
-      ]
+      ],
+      "labels": {
+        "-9999": "Not set (UTC)",
+        "10001": "US Eastern",
+        "10002": "US Central",
+        "10003": "US Mountain",
+        "10004": "Arizona",
+        "10005": "US Pacific",
+        "10006": "Alaska",
+        "10007": "Hawaii",
+        "10008": "Canada Atlantic",
+        "10009": "Mexico",
+        "10011": "UK, Ireland, Portugal",
+        "10012": "Central Europe",
+        "10013": "Eastern Europe",
+        "-720": "UTC-12",
+        "-690": "UTC-11:30",
+        "-660": "UTC-11",
+        "-630": "UTC-10:30",
+        "-600": "UTC-10",
+        "-570": "UTC-9:30",
+        "-540": "UTC-9",
+        "-510": "UTC-8:30",
+        "-480": "UTC-8",
+        "-450": "UTC-7:30",
+        "-420": "UTC-7",
+        "-390": "UTC-6:30",
+        "-360": "UTC-6",
+        "-330": "UTC-5:30",
+        "-300": "UTC-5",
+        "-270": "UTC-4:30",
+        "-240": "UTC-4",
+        "-210": "UTC-3:30",
+        "-180": "UTC-3",
+        "-150": "UTC-2:30",
+        "-120": "UTC-2",
+        "-90": "UTC-1:30",
+        "-60": "UTC-1",
+        "-30": "UTC-0:30",
+        "0": "UTC",
+        "30": "UTC+0:30",
+        "60": "UTC+1",
+        "90": "UTC+1:30",
+        "120": "UTC+2",
+        "150": "UTC+2:30",
+        "180": "UTC+3",
+        "210": "UTC+3:30",
+        "240": "UTC+4",
+        "270": "UTC+4:30",
+        "300": "UTC+5",
+        "330": "UTC+5:30",
+        "360": "UTC+6",
+        "390": "UTC+6:30",
+        "420": "UTC+7",
+        "450": "UTC+7:30",
+        "480": "UTC+8",
+        "510": "UTC+8:30",
+        "540": "UTC+9",
+        "570": "UTC+9:30",
+        "600": "UTC+10",
+        "630": "UTC+10:30",
+        "660": "UTC+11",
+        "690": "UTC+11:30",
+        "720": "UTC+12",
+        "750": "UTC+12:30",
+        "780": "UTC+13",
+        "810": "UTC+13:30",
+        "840": "UTC+14"
+      }
     },
     {
       "key": "tankLitres",
@@ -564,16 +621,32 @@
       "default": true
     },
     {
+      "key": "shiftCue",
+      "label": "Shift lights",
+      "type": "choice",
+      "default": "countin",
+      "options": [
+        [
+          "countin",
+          "Count in, by how fast the revs climb"
+        ],
+        [
+          "rpm",
+          "Fixed rpm band, as before"
+        ]
+      ]
+    },
+    {
+      "key": "smartTemps",
+      "label": "Show temperatures only when they matter",
+      "type": "bool",
+      "default": false
+    },
+    {
       "key": "showBoost",
       "label": "Show boost",
       "type": "bool",
       "default": true
-    },
-    {
-      "key": "stripClear",
-      "label": "Leave BMW's bottom strip clear",
-      "type": "bool",
-      "default": false
     },
     {
       "key": "cameraNotch",
@@ -583,7 +656,7 @@
     },
     {
       "key": "holiday",
-      "label": "Holiday editions (Ribbon)",
+      "label": "Holiday editions",
       "type": "choice",
       "default": "auto",
       "options": [
@@ -598,10 +671,6 @@
         [
           "xmas",
           "Christmas"
-        ],
-        [
-          "halloween",
-          "Halloween"
         ],
         [
           "thanks",
@@ -826,6 +895,10 @@
         [
           "540i",
           "540i"
+        ],
+        [
+          "545e",
+          "545e"
         ],
         [
           "M550i",

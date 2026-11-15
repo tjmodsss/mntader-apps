@@ -2,7 +2,7 @@
   "id": "m_copilot",
   "title": "TJM Copilot",
   "description": "AI co-driver that answers with your car's own data: live readings, service list, fault memory, model and engine from the car, plus your tune and mods. Read-only.",
-  "version": "1.0.22",
+  "version": "1.0.26",
   "vendor": "TJM",
   "loggingId": "OB27",
   "iconGlyph": "copilot",
@@ -22,6 +22,10 @@
       "statusLongitudinalAccelerationMassCenter": "rs",
       "statusLateralAccelerationMassCenter": "rs",
       "statusPushButtonMSA2": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle": {
+      "_optional": "the car's display units; tyre pressures are then told from their values",
+      "statusNewCurrentUnitsStatusExt": "rs"
     },
     "de.bmw.infotainment.vehicle.Vehicle2": {
       "statusCarSpeed2": "rs",
@@ -98,6 +102,44 @@
         [
           "BTN_REPAIR",
           "Connect"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Settings"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "theme",
+      "label": "Colour theme",
+      "type": "choice",
+      "default": "idrive_red",
+      "options": [
+        [
+          "idrive_red",
+          "iDrive Red"
+        ],
+        [
+          "idrive",
+          "iDrive Blue"
+        ],
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ],
+        [
+          "m_red",
+          "M Red"
+        ],
+        [
+          "ice",
+          "Ice White"
+        ],
+        [
+          "amber",
+          "Night Amber"
         ]
       ]
     }

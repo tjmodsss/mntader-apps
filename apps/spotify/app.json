@@ -2,7 +2,7 @@
   "id": "spotify",
   "title": "TJM Spotify Connect",
   "description": "Spotify Connect cockpit player and library browser for BMW iDrive 7",
-  "version": "1.0.25",
+  "version": "1.0.28",
   "vendor": "TJM",
   "loggingId": "OB26",
   "iconGlyph": "music",
@@ -32,8 +32,20 @@
       "key": "theme",
       "label": "Colour theme",
       "type": "choice",
-      "default": "spotify",
+      "default": "idrive_red",
+      "migrateFrom": [
+        "spotify",
+        "idrive"
+      ],
       "options": [
+        [
+          "idrive_red",
+          "iDrive Red"
+        ],
+        [
+          "idrive",
+          "iDrive Blue"
+        ],
         [
           "spotify",
           "Spotify Green"

@@ -2,7 +2,7 @@
   "id": "equalizer",
   "title": "TJM Equalizer",
   "description": "Experimental seven-band audio equalizer with adjustable filters and saved presets.",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "vendor": "TJM",
   "loggingId": "OB1C",
   "iconGlyph": "EQ",
@@ -79,6 +79,10 @@
         [
           "BTN_DSP_ON",
           "DSP EIN"
+        ],
+        [
+          "BTN_MUSIC_EXPORT",
+          "WAV Export"
         ],
         [
           "BTN_BYPASS",

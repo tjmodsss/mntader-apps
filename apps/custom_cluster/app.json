@@ -1,8 +1,8 @@
 {
   "id": "custom_cluster",
   "title": "TJM Custom Cluster",
-  "description": "Experimental custom instrument-cluster layouts and Waze integration tests.",
-  "version": "0.5.9",
+  "description": "G80/6WB previews, current-session scrollable logs and guarded small-layer KOMBI probes.",
+  "version": "0.6.2",
   "vendor": "TJM",
   "loggingId": "OB1E",
   "iconGlyph": "CC",
@@ -27,7 +27,7 @@
       "buttons": [
         [
           "BTN_TEST",
-          "Parked panel test"
+          "Preview / parked test"
         ],
         [
           "BTN_DIAG",
@@ -36,6 +36,10 @@
         [
           "BTN_QR",
           "QR logs"
+        ],
+        [
+          "BTN_LOG",
+          "Live Logs"
         ],
         [
           "BTN_SETTINGS",
@@ -102,18 +106,28 @@
       ]
     },
     {
+      "key": "enablePanelTests",
+      "label": "Allow experimental KOMBI tests",
+      "type": "bool",
+      "default": false
+    },
+    {
       "key": "panelTestMode",
-      "label": "Parked test content",
+      "label": "Test content",
       "type": "choice",
-      "default": "probe",
+      "default": "preview",
       "options": [
         [
+          "preview",
+          "Static iDrive preview (no KOMBI)"
+        ],
+        [
           "probe",
-          "Small diagnostic marker (recommended)"
+          "One-layer KOMBI probe"
         ],
         [
           "design",
-          "Selected full cluster design (experimental)"
+          "Three-layer KOMBI probe"
         ]
       ]
     },

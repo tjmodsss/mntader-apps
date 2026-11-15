@@ -1,4 +1,44 @@
-# Custom Cluster 0.5.9 — BMW G21 / MGU iDrive 7
+# Custom Cluster 0.6.2 — BMW G21 / MGU iDrive 7
+
+
+## 0.6.2: Live Logs and staged small-layer renderer investigation
+
+- **Live Logs** is available directly from the main app page. Older / Newer move 12 lines; Latest resumes following the newest events. Touch scrolling is also supported by the existing kit touch hook. The page retains its position when new messages arrive, so it can be recorded with a phone. It uses the same native MAIN screen as the diagnostics to avoid earlier RHMI navigation problems.
+- The last 1200 wrapped text lines of the current process are retained in memory, including HMI, vehicle, renderer and error events. The console is independent of disk I/O. A new process starts a fresh log. Opening another app page does not erase the active test history.
+- Automatic `cluster-session-*.txt` files are rotated on a successful new session; only regular files belonging to this session naming scheme are removed. Existing explicit TXT/QR snapshots and USB copies remain available. `Save TXT` and `Delete logs` are retained. Directory creation now also works with the older Node mkdir API.
+- The rendering architecture was compared with [Cluster Layouts](https://github.com/eroobeeroo/idrive7-cluster-info/blob/main/apps/cluster_layouts/engine.js), [Cluster Centre](https://github.com/eroobeeroo/idrive7-cluster-info/tree/main/apps/cluster_centre), and [bimmer-lab Cluster Themes](https://github.com/bimmer-lab/apps/tree/main/apps/cluster_themes). Those projects divide gauges, text and graphics into separate shader/image layers. No upstream source code has been copied.
+- The old full-screen shader is **not sent to the KOMBI** in this release. The existing saved `design` test choice becomes **Three-layer KOMBI probe**, featuring two small coloured shapes and a bar, outside the central map region. The layers start hidden, their uniforms are initialized before visibility, and each is traced by reference ID. The one-layer probe is also staged. Both use non-contending overlay requests. All owned probe layers are dropped on release; other applications' layers are not dropped.
+- This is a diagnostic step, **not a working G80/6WB full-cluster replacement**. The stock media widget and real combined map display have not been verified. Non-contending requests may remain waiting instead of drawing. Do not assume a small overlay preserves every OEM display. Leave experimental tests disabled unless the original BMW display is intact, and perform any further probe only while safely parked. The iDrive previews and existing Waze controls are unchanged.
+
+## 0.6.1: Fix stationary samples, add Restore BMW and Save TXT
+
+- **Vehicle data:** Custom Cluster now requests read-only `getValue` refreshes every 5 seconds for speed and engine RPM through the existing SOME/IP signal interface. A stationary BMW may send change notifications only, so a 180-second "last sample" does not by itself mean a failed connection. The refresh works only if the vehicle provider and getter are available. Both fields have independent receive timestamps: a fresh RPM paired with a stale speed must never pass the parked test.
+- **Diagnosis screen:** `Restore BMW` (first bottom action) drops only Custom Cluster's rendering layers and reconnects its client to the shared renderer without restarting Waze or modifying the CarPlay patch. It does **not** guarantee the BMW right-hand music widget will return; the UI reports when the panel slot is idle but explicitly treats OEM music as unverified. If stock displays do not recover, stop testing until the HU has returned to normal after a safe restart.
+- **Diagnosis screen:** `Save TXT` (third bottom action) immediately creates a readable diagnostic text file in the app's private `exports` directory, and attempts a copy to a writable mounted USB directory. Its destination or error is shown on Diagnostics. **QR Logs remains optional.**
+- **Automatic files:** A text snapshot is also written after a panel-layer release. The existing `cluster-session-*.txt` file starts at app launch, records UI, renderer and state events, and exposes storage errors in Diagnostics. No debug log or file is published to GitHub.
+- **Default on upgrades:** A new **Allow experimental KOMBI tests** toggle defaults to **Off**. Even an installation that retained the old `probe` or `design` choice cannot take the panel until explicitly enabled again in Settings. The test button shows only the iDrive preview otherwise.
+- **Repeatability:** If a panel test cannot start because read-only updates are missing, the iDrive-only 30-second preview is used instead. It can be repeated and never takes over the real gauges. The full-panel test remains restricted to a verified selector P, stopped speed, and actual fresh speed+RPM samples; there is no synthetic bypass.
+- **Render limitation:** Slot `panel` (0x203) can obscure BMW's right-side music widget. A `drop` or client disconnect only releases our layers; it does not prove the BMW HMI reopens the widget. G80, G21 and 6WB full panels are still experimental and **must not be used while driving**.
+
+### Suggested test on the parked vehicle
+
+1. Update Custom Cluster, open **Diagnostics**, and press **Save TXT**. Check for a path or a precise I/O error. A USB stick is optional; when present it can receive a copy.
+2. Watch speed age and RPM age separately for at least 15 seconds. **Do not enable experimental KOMBI tests while the original music panel is missing.** With getter support both should refresh every few seconds despite 0 km/h.
+3. Press **Restore BMW**. Look for the original music pane and check the logged `recoveryState`; `panel idle` only confirms our slot is idle, not restored OEM media.
+4. If music is still absent, do not initiate another real `panel` test. Return the head unit to normal while safely parked before any new attempt.
+5. After a short parked test, use **Save TXT** again and export both the session and snapshot files; the test also saves an automatic snapshot on release.
+
+## 0.6.0: Persistent logs, static engine-off preview, explicit KOMBI safety boundary
+
+- A `cluster-session-<timestamp>-<random>.txt` diagnostic file is created in the app's private `dataDir/exports/` **as soon as the app opens**, without pressing QR Logs. UI actions, panel requests, renderer responses and a vehicle/slot summary every 15 seconds are appended. The maximum size is 1 MiB per session.
+- **QR Logs** still creates a separate `cluster-diagnostics-*.txt` snapshot and tries to copy it to writable USB mounts. Both formats can be deleted via Delete logs / Confirm delete; USB copies remain untouched. The QR screen displays the actual auto-log path when storage is available.
+- New safe default **Test content → Static iDrive preview** shows a 30-second G80/6WB example with 0 km/h and 0 rpm. It needs no engine, RPM notifications or selector P because it **never touches the KOMBI slot**.
+- Existing installs may retain the earlier saved `probe` setting. For engine-off testing select **Static iDrive preview** explicitly.
+- The real **KOMBI marker** and **Full KOMBI design** modes still require recent real speed/RPM, selector P, and 0 km/h. Old samples (e.g. 180 s) cannot prove the vehicle is stopped; an engine-off indication by itself cannot replace an independent current stationary check.
+- When target `panel` (slot 0x203) is mapped with `content` and `contend: true`, it may displace original right-hand media widgets. A working layered music-preserving full cluster has **not** been established. The real panel and Waze overlay are still experimental; no driving use of custom full gauges.
+
+### Reading the automatic file
+The physical path varies by MGU installer and app sandbox. The **QR Logs** screen shows the actual path as `Auto log: ...` when writable. Retrieve that file with your Phone Terminal SSH/SFTP workflow, or use QR Logs to obtain a numbered offline QR snapshot. No private log files are committed to GitHub.
 
 ## 0.5.9: Single native page and trace of the parked panel test
 

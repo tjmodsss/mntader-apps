@@ -18,6 +18,74 @@ const MEDIA_ROOTS = ['/media', '/run/media'];
 // journals and data from other apps are deliberately outside this scope.
 const LOCAL_EXPORT = /^cluster-diagnostics-\d{4}-\d{2}-\d{2}T[\d-]+Z\.txt$/;
 
+// Unlike QR snapshots this log begins at app startup, before any panel test.
+// Limit its size and keep it within the app's private data directory.
+const SESSION_EXPORT = /^cluster-session-\d{4}-\d{2}-\d{2}T[\d-]+Z-[a-f0-9]{8}\.txt$/;
+const MAX_SESSION_BYTES = 1024 * 1024;
+function startJournal(ctx) {
+    let file = null, bytes = 0, error = '';
+    function openNew() {
+        file = null;
+        error = '';
+        bytes = 0;
+        try {
+            if (!ctx || !ctx.dataDir || !path.isAbsolute(ctx.dataDir)) {
+                error = 'No absolute app dataDir supplied by MGU runtime';
+                return;
+            }
+            const dir = path.join(ctx.dataDir, 'exports');
+            // Node 8 on ID7 does not support recursive mkdir options.
+            try { fs.mkdirSync(dir, 0o700); }
+            catch (e) { if (e.code !== 'EEXIST') throw e; }
+            const st = fs.lstatSync(dir);
+            if (!st.isDirectory() || st.isSymbolicLink()) {
+                error = 'App export directory is not a regular folder';
+                return;
+            }
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const suffix = crypto.randomBytes(4).toString('hex');
+            const name = 'cluster-session-' + stamp + '-' + suffix + '.txt';
+            file = path.join(dir, name);
+            const header = 'CUSTOM CLUSTER AUTO SESSION LOG\nCreated: ' +
+                new Date().toISOString() + '\nVersion: ' +
+                (ctx.spec && ctx.spec.version || 'unknown') + '\n' +
+                'This file contains diagnostic events, not proof of visible KOMBI pixels.\n\n';
+            fs.writeFileSync(file, header, { flag: 'wx', mode: 0o600 });
+            bytes = Buffer.byteLength(header);
+            // Only automatic session files are rotated. Deliberately retain
+            // explicit TXT/QR snapshots and never touch USB/system logs.
+            const failures = [];
+            fs.readdirSync(dir).forEach(oldName => {
+                if (oldName === name || !SESSION_EXPORT.test(oldName)) return;
+                const old = path.join(dir, oldName);
+                try { if (fs.lstatSync(old).isFile()) fs.unlinkSync(old); }
+                catch (e) { failures.push(String(e.code || e.message || e)); }
+            });
+            if (failures.length) error = 'Old session cleanup: ' + failures.join(', ').slice(0, 180);
+        } catch (e) { file = null; error = String(e.code || e.message || e); }
+    }
+    const journal = {
+        get path() { return file; },
+        get error() { return error; },
+        write(event) {
+            if (!file || bytes >= MAX_SESSION_BYTES) {
+                if (bytes >= MAX_SESSION_BYTES) error = 'Auto log reached 1 MiB limit';
+                return false;
+            }
+            const line = new Date().toISOString() + ' ' +
+                String(event).replace(/[\r\n]+/g, ' ').slice(0, 1800) + '\n';
+            try {
+                fs.appendFileSync(file, line, 'utf8');
+                bytes += Buffer.byteLength(line);
+                return true;
+            } catch (e) { error = String(e.code || e.message || e); return false; }
+        },
+        reset() { openNew(); },
+    };
+    openNew();
+    return journal;
+}
+
 function snapshot(ctx, cluster, wazeStatus, phoneStatus, hmiEvents) {
     const data = [
         'CUSTOM CLUSTER DIAGNOSTICS v1',
@@ -95,7 +163,7 @@ function clearSaved(ctx) {
         return result;
     }
     entries.forEach((name) => {
-        if (!LOCAL_EXPORT.test(name)) return;
+        if (!LOCAL_EXPORT.test(name) && !SESSION_EXPORT.test(name)) return;
         const target = path.join(directory, name);
         try {
             // Never follow links, even if their names match a diagnostic file.
@@ -140,4 +208,4 @@ function draw(cv, qr, x, y, maxSize) {
             top + (row + quiet) * pixel, pixel, pixel, '#000000');
 }
 
-module.exports = { report, matrix, draw, snapshot, clearSaved };
+module.exports = { report, matrix, draw, snapshot, save, clearSaved, startJournal };
