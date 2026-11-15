@@ -1,8 +1,8 @@
 {
   "id": "custom_cluster",
   "title": "TJM Custom Cluster",
-  "description": "G80/6WB previews, current-session scrollable logs and guarded small-layer KOMBI probes.",
-  "version": "0.6.2",
+  "description": "KOMBI-only selected-layout parked tests and reliable text diagnostics.",
+  "version": "0.6.6",
   "vendor": "TJM",
   "loggingId": "OB1E",
   "iconGlyph": "CC",
@@ -27,7 +27,7 @@
       "buttons": [
         [
           "BTN_TEST",
-          "Preview / parked test"
+          "Test KOMBI"
         ],
         [
           "BTN_DIAG",
@@ -61,15 +61,15 @@
         ],
         [
           "sixwb",
-          "BMW 6WB digital (parked test)"
+          "BMW 6WB digital"
         ],
         [
           "oem",
-          "G21 OEM-style recolor (parked test)"
+          "G21 OEM-style recreation"
         ],
         [
           "g80",
-          "G80 full cluster (parked test)"
+          "G80-inspired design"
         ],
         [
           "sport",
@@ -110,46 +110,6 @@
       "label": "Allow experimental KOMBI tests",
       "type": "bool",
       "default": false
-    },
-    {
-      "key": "panelTestMode",
-      "label": "Test content",
-      "type": "choice",
-      "default": "preview",
-      "options": [
-        [
-          "preview",
-          "Static iDrive preview (no KOMBI)"
-        ],
-        [
-          "probe",
-          "One-layer KOMBI probe"
-        ],
-        [
-          "design",
-          "Three-layer KOMBI probe"
-        ]
-      ]
-    },
-    {
-      "key": "panelTarget",
-      "label": "Panel target / slot",
-      "type": "choice",
-      "default": "panel",
-      "options": [
-        [
-          "panel",
-          "Standard panel (0x203)"
-        ],
-        [
-          "panel201",
-          "Experimental 0x201 (requires renderer support)"
-        ],
-        [
-          "panel202",
-          "Experimental 0x202 (requires renderer support)"
-        ]
-      ]
     },
     {
       "key": "sixwbTheme",
@@ -402,22 +362,6 @@
       "label": "Phone status badge (map/panel)",
       "type": "bool",
       "default": false
-    },
-    {
-      "key": "demo",
-      "label": "Preview data (HMI only)",
-      "type": "choice",
-      "default": "off",
-      "options": [
-        [
-          "off",
-          "Live values only"
-        ],
-        [
-          "on",
-          "Preview on centre display"
-        ]
-      ]
     }
   ]
 }

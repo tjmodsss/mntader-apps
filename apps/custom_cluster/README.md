@@ -1,5 +1,41 @@
-# Custom Cluster 0.6.2 — BMW G21 / MGU iDrive 7
+# Custom Cluster 0.6.6 — BMW G21 / MGU iDrive 7
 
+
+## 0.6.6 — one KOMBI test, no legacy test selector
+
+- Removed Test content, Panel target and simulated preview data from the user settings. The single Test KOMBI action always sends the selected layout to the standard physical panel, retaining the explicit opt-in, P/fresh-signal guard, 12-second timeout and release acknowledgement. A saved 0.6.4 6WB-only or marker choice is ignored; it cannot block G80 or trigger markers. No iDrive-only fallback.
+- The centre screen is now a lightweight text control/status page rather than a second instrument preview. Diagnostics, QR/TXT and scrollable Live Logs remain. Display exceptions are logged and an error screen is attempted instead of leaving an old page on screen; an active own panel is released if a display exception occurs.
+- The reported 0.6.5 video confirms the old saved 6WB setting conflicted with G80. It does not establish why the old HMI canvas remained on screen, so the preview rendering dependency was removed rather than assuming a specific Canvas failure.
+- No full-screen black masking or change to Waze integration: the exact OEM warning regions and native layer ordering are not verified. The current side artwork remains experimental, original instruments may remain visible, and exact G21 recolouring is unresolved. Do not use these tests while driving.
+
+## 0.6.5 — one test mode for the selected layout
+
+- **Test content → Selected layout (parked prototype)** uses the chosen layout, not a fixed set of diagnostic blocks. G21 OEM-style recreation, G80-inspired, M Sport, Classic and Minimal use the shared side-artwork engine; 6WB uses its existing two faces/two needle effects. BMW original is unchanged. Existing diagnostic and preview settings remain valid; a saved marker choice is not silently converted on upgrade. Experimental tests remain opt-in and limited to 12 s in verified P with fresh measured values.
+- The shared engine uses four or six hidden-initialized layers, bounded to the left/right nominal side areas, with two 256×256 faces, two small 128×56 numeric readouts and (except Minimal) separate moving markers. Only changed values are sent to small dynamic textures and marker positions. The G21 art recreates the angular contour and visible labels from the tester's photo, with a piecewise approximate scale; it is **not the actual BMW artwork**, a pixel-exact clone, or a native RGB palette change. G80 is also an independent approximation, not a factory M skin.
+- The five shared layouts now show their own corresponding side artwork on the iDrive preview. Palette/custom RGB and brightness apply to the artwork; automatic colour cycling is sampled at test start for the short KOMBI test to keep face and markers consistent. 6WB continues to offer Comfort/Sport/ECO palettes.
+- The previous automatic Sport/Classic/Minimal map overlays have been retired so selecting a design alone never adds those gauges to the map. Existing independent Waze control remains unchanged. No layer covers the nominal centre rectangle or bottom strip, but actual OEM warning indicators, music, and map composition are not yet verified on the car. Original instruments may remain visible around the small side graphics. Stop testing if stock displays or faults do not return to normal.
+- Review of the cluster-render protocol and other community apps did not establish a method to recolour the existing BMW KOMBI scene in place. No firmware/coding writes or upstream-source copying are included. Exact 1:1 OEM recolouring remains unresolved.
+- Targeted simulations exercised every layout, repeatability, measured-value updates, renderer refusal recovery, opt-out and side-region bounds. Rendering with the actual KOMBI GPU, transfer of textures, exact fit, OEM recovery and a complete MGU build have not been validated.
+
+## 0.6.4 — 6WB round-dial parked prototype
+
+The tester confirmed two successive 0.6.3 probes work. The three coloured shapes were intentionally independent of the preview design. A new explicit test option now sends 6WB-inspired instrument artwork to the physical panel instead of those marker shapes.
+
+- Select BMW 6WB under Cluster layout, Standard panel, and **6WB round dials (parked prototype)** under Test content. Leave experimental tests off until the car is safely parked, all original indicators have recovered and no relevant faults/warnings remain. Start the test manually. The older saved design option stays a three-marker diagnostic; upgrades do not silently select the larger drawing.
+- Two 256x256 RGBA dial-face textures are drawn using the kit Canvas and sent once each. Two tiny GLSL effects draw the real-value pointers. All four 320x320 layers are initially hidden and initialized before visibility; the speed/RPM scalars come from real samples. Comfort, Sport and ECO accents are supported; the chosen face colour is fixed for the short test. The artwork is original, not a factory 6WB skin.
+- Side regions x=88..408 and x=1512..1832 leave the nominal centre map aperture (x=416..1504) and bottom strip untouched by our drawing. The native slot composition may still hide OEM media, and original dial segments may remain visible outside the round faces. No guarantee of preserved OEM indicators or simultaneous Waze display until verified on the specific vehicle.
+- Existing 12-second test limit, fresh release acknowledgement, parked guard and non-contending renderer requests stay in effect. Release every owned layer on timeout, leaving P, invalid/stale signals, opt-out or owned renderer error. No layer replay after disconnect. One-/three-marker diagnostics remain available. G80 and other full layouts are still previews only.
+- Simulated checks verified the four allocations, initialization order, real RPM update, repeated release/rearm and error/disconnect cleanup. The actual image texture path, fonts, GPU rendering, and vehicle geometry still need hardware validation; the full MGU package build is not verified here.
+
+## 0.6.3 — release acknowledgement and concise logs
+
+Vehicle recording (15 Nov 2026) showed three visible probe elements, then their disappearance and return of BMW media after release, as reported by the tester. Repeated requests were blocked locally despite P, 0 km/h, 0 rpm and fresh samples. The actual renderer target status is `target panel: slot 0x203 ...`, whereas the old acknowledgement parser expected no colon.
+
+- Match the actual target/slot and idle state, accepting both renderer spellings; reject idle if the slot table still reports the renderer scene mapped or queued.
+- Poll every second while release is pending and request fresh status on idle events. No delayed automatic re-arm: another manual request is required. The stationary guard and opt-in remain in effect.
+- Preserve full test JSON on disk and show compact test summaries on the console. Log changed renderer status lines rather than repeating identical blocks.
+- Three repeated release/arm cycles passed with a simulated renderer, including the observed colon syntax, lingering state, and release of all owned layers. No claim is made that BMW media or all OEM warnings have been verified by software.
+- The same one/three-layer probes remain. Full G80 and 6WB designs are still previews only. Further hardware tests must be parked; map compatibility and full layout are not established.
 
 ## 0.6.2: Live Logs and staged small-layer renderer investigation
 

@@ -48,6 +48,18 @@ The look of BMW's newer Live Cockpit Sport view.
 
 <p align="center"><img src="../../docs/images/cluster-sport.png" width="900" alt="Sport theme"></p>
 
+### M view
+
+The look of the M view in the newer M cars' Live Cockpit (M3, M4, M5), for any car. Asked for in issue #15.
+
+- **Left:** speed along a white line with rounded corners, 0 to 200 mph (0 to 330 km/h). The band inside the line lights up from 0 to the needle.
+- **Right:** revs the same way, 0 to 8000 rpm, with yellow and red marks from your redline.
+- **Middle:** the speed and the gear, each over its own line, with the drive mode under the gear. With "Show Waze map inside the theme" on, the map shows between the two scales, and the window opens and closes without the theme being built again.
+- **Corners:** fuel on the far left and oil temperature on the far right, as small dials.
+- **Bottom:** the clock, range and outside temperature, with BMW's own gear letter.
+
+<p align="center"><img src="../../docs/images/cluster-mview.png" width="900" alt="M view theme"></p>
+
 ### Minimal
 
 Just the speed, big, with the gear and drive mode beside it, a thin fuel line under it (the reserve end is red), and oil and coolant in small print.

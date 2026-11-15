@@ -363,7 +363,8 @@ mgu.run({
                 : B.seat(intent.data.side, intent.data.level,
                     intent.type === 'OFF' ? 0 : intent.data.seconds);
 
-            // BDC is read before each 2E write, with >=3s between requests.
+            const did = (data[0] << 8) | data[1];
+            // Require a positive read of the intended heater, not another heater.
             // The command can run while moving, but stale speed data blocks it.
             const remaining = 3000 - (Date.now() - ctl.lastWriteAt);
             if (remaining > 0) await wait(remaining);
@@ -376,15 +377,15 @@ mgu.run({
                 record('BLOCK', lastAction);
                 return false;
             }
-            if (!ctl.verified) await ctl.read(B.DID_HEAT);
-            if (!ctl.verified || !ctl.motionKnown || !permitted() || !startAllowed() ||
+            if (!ctl.verifiedFor(did)) await ctl.read(did);
+            if (!ctl.verifiedFor(did) || !ctl.motionKnown || !permitted() || !startAllowed() ||
                 cycle.mode !== 'on' || cycle.onAt !== ignition || (intent.type !== 'OFF' &&
                     (generation !== cancelGeneration || !cycle.mayContinue()))) {
                 intent.retryable = permitted() && cycle.mode === 'on' && cycle.onAt === ignition &&
                     generation === cancelGeneration && cycle.mayContinue() && startAllowed() &&
-                    (!ctl.verified ? /timeout|temporarily_not_accepted|busy|unavailable|no ecu response|cooldown/i.test(ctl.info) :
+                    (!ctl.verifiedFor(did) ? ctl.readRetryable :
                         !ctl.motionKnown);
-                lastAction = intent.device + ': NOT sent (' + ctl.info + ').';
+                lastAction = intent.device + ': NOT sent (DID 0x' + did.toString(16).toUpperCase() + ': ' + ctl.info + ').';
                 record('BLOCK', lastAction);
                 return false;
             }
@@ -393,10 +394,9 @@ mgu.run({
                     (generation === cancelGeneration && cycle.mayContinue()));
             const attemptWrite = async attempt => {
                 if (!stillAllowed()) return { ok: false, nrc: null, blocked: true };
-                if (!ctl.verified) await ctl.read(B.DID_HEAT);
-                if (!stillAllowed() || !ctl.verified) {
-                    intent.retryable = stillAllowed() &&
-                        /timeout|temporarily_not_accepted|busy|unavailable|no ecu response|cooldown/i.test(ctl.info);
+                if (!ctl.verifiedFor(did)) await ctl.read(did);
+                if (!stillAllowed() || !ctl.verifiedFor(did)) {
+                    intent.retryable = stillAllowed() && ctl.readRetryable;
                     return { ok: false, nrc: null, blocked: true };
                 }
                 const accepted = await ctl.autoWrite(data, intent.device + ' ' + intent.type);
@@ -406,7 +406,7 @@ mgu.run({
                 record(accepted ? 'ECU ACK' : 'ECU REJECT', lastAction + ' [' + ctl.info + ']');
                 intent.retryable = !accepted && stillAllowed() &&
                     (ctl.lastNrc === 0x21 || (!ctl.lastWriteAttempted &&
-                        /busy|cooldown|unavailable|stale|read bdc/i.test(ctl.info)));
+                        /busy|cooldown|unavailable|stale|read target bdc/i.test(ctl.info)));
                 if (!accepted && ctl.lastWriteAttempted && ctl.lastNrc === null)
                     record('WRITE UNCONFIRMED', intent.device + ': outcome unknown; no blind ON retry');
                 return { ok: accepted, nrc: ctl.lastNrc };
@@ -683,7 +683,10 @@ mgu.run({
                     // Show the latest valid ECU state. A normal manual OFF/ON
                     // transition is not evidence of an unstable readback.
                     const detail = !decoded ? (stale ? 'NOT AVAILABLE' :
-                        entry.ok ? 'Unsupported reply format' : 'ECU read rejected') :
+                        entry.ok ? 'Unsupported reply format' :
+                            entry.nrc === 0x22 ? 'Unavailable (NRC 22: conditions)' :
+                            entry.nrc === 0x25 ? 'Unavailable (NRC 25: subnet)' :
+                            'ECU read rejected / timeout') :
                         B.readbackLabel(decoded, seat);
                     text(cv, label, 54, y, 25, t.text);
                     text(cv, detail, 665, y, 23, decoded ?
@@ -693,7 +696,7 @@ mgu.run({
                 readRow('Driver seat', B.DID_SEAT_DRIVER, 267, true);
                 readRow('Passenger seat', B.DID_SEAT_PASSENGER, 327, true);
                 cv.fillRect(54, 354, 1450, 1, '#2e4052');
-                text(cv, 'Latest ECU state shown; raw 0x62 replies are saved in Log.',
+                text(cv, 'Independent heater checks; unavailable does not mean OFF.',
                     54, 400, 22, t.warn);
                 text(cv, statusBusy ? 'Reading BDC ...' : 'Last ECU read: ' + (statusAt ?
                     Math.round((now - statusAt) / 1000) + 's ago' : 'not yet'), 54, 448, 22, t.dim);

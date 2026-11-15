@@ -2,7 +2,7 @@
   "id": "f30_cluster",
   "title": "TJM F30 Cluster",
   "description": "Instrument cluster themes after the F-series 6WB look: Comfort, Sport and Eco Pro, following the drive mode",
-  "version": "0.7.13",
+  "version": "0.7.14",
   "vendor": "TJM",
   "loggingId": "OB32",
   "iconGlyph": "F30",
@@ -206,6 +206,12 @@
     {
       "key": "baked",
       "label": "Baked 6WB textures",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "needleSmooth",
+      "label": "Smooth needles",
       "type": "bool",
       "default": true
     },

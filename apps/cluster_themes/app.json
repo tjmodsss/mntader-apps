@@ -1,8 +1,8 @@
 {
   "id": "cluster_themes",
   "title": "TJM Cluster Themes",
-  "description": "Redraws the instrument cluster: GT3 race dash, M-style, Sport, Minimal, Track, Drag, Rally, Retro 80s, Cruise, Dyno (BMW-coloured readout tiles) or Ribbon (with holiday editions), with shift lights, boost, temps, tyres, a G-meter and a 0-60 timer",
-  "version": "0.17.8",
+  "description": "Redraws the instrument cluster: GT3 race dash, M-style, M view, Sport, Minimal, Track, Drag, Rally, Retro 80s, Cruise, Dyno (BMW-coloured readout tiles) or Ribbon (with holiday editions), with shift lights, boost, temps, tyres, a G-meter and a 0-60 timer",
+  "version": "0.18.0",
   "vendor": "TJM",
   "loggingId": "OB1F",
   "iconGlyph": "CLU",
@@ -95,6 +95,10 @@
           "M"
         ],
         [
+          "mview",
+          "M view"
+        ],
+        [
           "sport",
           "Sport"
         ],
@@ -165,6 +169,10 @@
           "M"
         ],
         [
+          "mview",
+          "M view"
+        ],
+        [
           "sport",
           "Sport"
         ],
@@ -221,6 +229,10 @@
           "M"
         ],
         [
+          "mview",
+          "M view"
+        ],
+        [
           "sport",
           "Sport"
         ],
@@ -275,6 +287,10 @@
         [
           "m",
           "M"
+        ],
+        [
+          "mview",
+          "M view"
         ],
         [
           "sport",

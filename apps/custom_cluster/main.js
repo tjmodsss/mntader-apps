@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Custom Cluster 0.6.2 - scrollable current-session console and guarded renderer probes.
+ * Custom Cluster 0.6.6 - KOMBI-only test control and lightweight main status page.
  * Stock is the default. Real values only can reach cluster-render; emulator
  * and demo values stay exclusively on the centre-screen preview.
  */
@@ -10,15 +10,19 @@ const G = require('./kit/gauges');
 const { ClusterLayers } = require('./cluster_layers.js');
 const { PhoneBridge } = require('./phone_bridge.js');
 const { WazeControl } = require('./waze_control.js');
-const { drawG80Preview } = require('./g80_preview.js');
-const { draw6WBPreview } = require('./sixwb_preview.js');
 const { resolveColor, resolve6WBColor, colorHex } = require('./cluster_colors.js');
-const { withAlpha } = require('./kit/canvas');
 const QR = require('./cluster_diagnostics.js');
 const { LiveLog } = require('./live_log.js');
 
-function fmt(v, unit) { return G.isNum(v) ? String(Math.round(v)) + (unit || '') : '--'; }
-function ageText(age) { return age === null ? 'no sample' : age + 's old'; }
+function ageText(age) { return age == null ? 'no sample' : age + 's old'; }
+function testSummary(st) {
+    return 'selector=' + (st.gearPosition || '?') +
+        ' speed=' + st.speedKmh + ' rpm=' + st.engineRpm +
+        ' ages=' + st.speedAgeSeconds + '/' + st.rpmAgeSeconds + 's' +
+        ' panel=' + (st.panelActive ? 'active' : 'off') +
+        ' slot=' + st.panelTargetState +
+        ' release=' + (st.recoveryRequestedAt ? (st.releaseConfirmed ? 'confirmed' : 'pending') : 'n/a');
+}
 
 mgu.run({
     async start(ctx) {
@@ -48,7 +52,8 @@ mgu.run({
         const car = new Car(Object.assign({}, ctx, { log }), ['rpm', 'speed', 'temps', 'gear'], { pollMs: 5000 });
         const cluster = new ClusterLayers(log);
         cluster.setTraceSink((line) => {
-            journal.write('PANEL ' + line);
+            // tracePanel already carries a UTC timestamp: avoid printing it twice.
+            journal.write('PANEL ' + line.replace(/^\d{4}-\d{2}-\d{2}T[0-9:.]+Z\s+/, ''));
             // Always save a separate full text snapshot when a real panel
             // attempt ENDS, regardless of whether QR Logs was ever opened.
             if (line.indexOf('restore requested:') >= 0)
@@ -60,7 +65,7 @@ mgu.run({
         });
         let qrReport = null, qrPage = 0, qrMatrix = null, qrError = '', qrNotice = '';
         let clearArmedUntil = 0;
-        let staticPreviewUntil = 0, lastJournalStateAt = 0;
+        let lastJournalStateAt = 0, lastUiError = '', testNotice = 'Select a layout, then test on KOMBI.';
         let txtPaths = [], txtError = '', txtReason = 'No manual text export yet';
         function saveTxt(reason) {
             try {
@@ -104,8 +109,7 @@ mgu.run({
             ui.text('BTN_LOG', 'Live Logs');
             ui.text('BTN_TEST', currentPage === 'DIAGNOSTICS' ? 'Restore BMW' :
                 currentPage === 'MAIN' ?
-                    (!settings.get('enablePanelTests') || settings.get('panelTestMode') === 'preview' ?
-                        'Static HMI preview' : 'Parked panel test') :
+                    'Test KOMBI' :
                     'Back to cluster');
             ui.text('BTN_DIAG', currentPage === 'QR_REPORT' ?
                 (clearArmedUntil > Date.now() ? 'Confirm delete' : 'Delete logs') :
@@ -135,7 +139,8 @@ mgu.run({
                 rgbGreen: settings.get('rgbGreen'), rgbBlue: settings.get('rgbBlue'),
                 colorBrightness: settings.get('colorBrightness'), cycleSeconds: settings.get('cycleSeconds'),
                 phoneBadge: !!settings.get('phoneBadge'), wazeMap: settings.get('wazeMap'),
-                panelTestMode: settings.get('panelTestMode'), panelTarget: settings.get('panelTarget') });
+                enablePanelTests: !!settings.get('enablePanelTests'),
+                panelTestMode: 'selected_layout', panelTarget: 'panel' });
             bridge.setEnabled(!!settings.get('phoneBridge'));
             waze.setChoice(settings.get('wazeMap'));
         }
@@ -145,8 +150,8 @@ mgu.run({
             updateButtons();
             journal.write('Settings: layout=' + settings.get('layout') +
                 ' panelOptIn=' + !!settings.get('enablePanelTests') +
-                ' test=' + settings.get('panelTestMode') +
-                ' target=' + settings.get('panelTarget'));
+                ' test=selected_layout target=panel');
+            testNotice = 'Settings changed. Test KOMBI uses the selected layout.';
         });
         car.onSample((d) => { if (!d.demo) cluster.sample(d); });
         ui.onClick('BTN_TEST', () => {
@@ -156,24 +161,26 @@ mgu.run({
                 return;
             }
             if (currentPage !== 'MAIN') return showPage('MAIN');
-            if (!settings.get('enablePanelTests') || settings.get('panelTestMode') === 'preview') {
-                // Safe when the engine is off: no RAMSES panel layer is created.
-                staticPreviewUntil = Date.now() + 30000;
-                uiEvent('static 30 s HMI-only preview requested');
-                journal.write('STATIC PREVIEW started (does not take over KOMBI); panel opt-in=' +
-                    !!settings.get('enablePanelTests'));
+            if (!settings.get('enablePanelTests')) {
+                testNotice = 'Enable experimental KOMBI tests in Settings first.';
+                journal.write('TEST BLOCKED ' + testNotice);
+                return;
+            }
+            if (settings.get('layout') === 'stock') {
+                cluster.restoreOriginal();
+                testNotice = 'BMW original selected: custom graphics released.';
                 return;
             }
             uiEvent('parked test clicked');
-            journal.write('TEST REQUEST before=' + JSON.stringify(cluster.status()));
+            journal.write('TEST REQUEST ' + testSummary(cluster.status()));
+            diskJournal.write('TEST REQUEST details=' + JSON.stringify(cluster.status()));
             const enabled = cluster.armPanel();
-            journal.write('TEST RESULT armed=' + enabled + ' state=' + JSON.stringify(cluster.status()));
-            if (!enabled && /stale|no complete sample|release not confirmed|Renderer not connected|not ready|Prior panel/i.test(cluster.status().disarmReason)) {
-                // User can always repeat an HMI-only demonstration. It must
-                // not manufacture motion readings or override the KOMBI gate.
-                staticPreviewUntil = Date.now() + 30000;
-                uiEvent('KOMBI test refused; showing HMI-only preview instead');
-            }
+            const result = cluster.status();
+            journal.write('TEST RESULT armed=' + enabled + ' | ' + testSummary(result));
+            journal.write('TEST REASON ' + result.disarmReason);
+            diskJournal.write('TEST RESULT details=' + JSON.stringify(result));
+            testNotice = enabled ? 'Selected layout requested on KOMBI (max 12 s).' :
+                result.disarmReason;
             log.info('panel test: ' + (enabled ? 'armed for 12 s' : cluster.status().disarmReason));
         });
         ui.onClick('BTN_DIAG', () => {
@@ -392,89 +399,53 @@ mgu.run({
         }
 
         updateButtons();
-        ctx.loop('MAIN', 2, () => {
-            if (currentPage === 'DIAGNOSTICS') return renderDiagnostics('MAIN_GFX');
-            if (currentPage === 'QR_REPORT') return renderQr('MAIN_GFX');
-            if (currentPage === 'LIVE_LOGS') return renderLiveLogs('MAIN_GFX');
-            const t = ctx.theme(), realData = car.data(), st = cluster.status();
-            const previewActive = Date.now() < staticPreviewUntil;
-            // Static preview works with ignition off and stale signals, but is
-            // NEVER allowed into the KOMBI renderer or its safety guard.
-            const d = previewActive ? Object.assign({}, realData,
-                { speed: 0, rpm: 0, demo: true }) : realData;
-            const cv = ctx.canvas(1600, 520).clear(t.bg);
-            const layout = settings.get('layout');
-            const activeOptions = { accent: settings.get('accent'),
-                colorMode: settings.get('colorMode'), rgbRed: settings.get('rgbRed'),
-                rgbGreen: settings.get('rgbGreen'), rgbBlue: settings.get('rgbBlue'),
-                colorBrightness: settings.get('colorBrightness'), cycleSeconds: settings.get('cycleSeconds'),
-                sixwbTheme: settings.get('sixwbTheme'), sixwbColorSource: settings.get('sixwbColorSource') };
-            const accentHex = colorHex(layout === 'sixwb' ? resolve6WBColor(activeOptions, Date.now())
-                : resolveColor(activeOptions, Date.now()));
-            G.frame(cv, t, ['Custom Cluster'], 0,
-                [previewActive ? { text: 'STATIC PREVIEW - IDRIVE ONLY' } :
-                    d.demo ? { text: 'PREVIEW ONLY' } :
-                    { text: st.ready ? 'RENDERER READY' : 'RENDERER OFFLINE' }]);
-
-            G.panel(cv, t, 24, 48, 1070, 450, 'Cluster design: ' + layout.toUpperCase());
-            if (layout === 'sixwb') {
-                draw6WBPreview(cv, { x: 38, y: 86, w: 1042, h: 398 }, d,
-                    { wazeMap: settings.get('wazeMap'), color: accentHex, mode: settings.get('sixwbTheme') }, st);
-            } else if (layout === 'g80' || layout === 'oem') {
-                drawG80Preview(cv, { x: 38, y: 86, w: 1042, h: 398 }, d,
-                    { wazeMap: settings.get('wazeMap'), color: accentHex, variant: layout }, st);
-            } else if (layout === 'classic') {
-                G.radial(cv, t, 300, 302, 156, { value: d.speed, min: 0, max: 260, label: 'SPEED', unit: 'km/h', ticks: 13, color: accentHex });
-                G.radial(cv, t, 824, 302, 156, { value: d.rpm, min: 0, max: 5000, label: 'RPM', ticks: 10, color: accentHex });
-            } else if (layout === 'sport') {
-                G.segBar(cv, t, 75, 135, 964, 120, { label: 'Engine speed', value: d.rpm, min: 0, max: 5000,
-                    unit: 'rpm', step: 250, limit: 4800, color: accentHex });
-                cv.text(fmt(d.speed), 115, 407, 82, t.text, { font: 'num' });
-                cv.text('km/h', 420, 407, 30, t.dim);
-                cv.text('OIL ' + fmt(d.oil, ' C'), 800, 394, 27, t.dim);
-            } else if (layout === 'minimal') {
-                cv.text(fmt(d.speed), 170, 310, 128, t.text, { font: 'num' });
-                cv.text('km/h', 520, 308, 36, t.dim);
-                cv.text('RPM  ' + fmt(d.rpm), 175, 415, 36, accentHex);
-            } else {
-                cv.text('BMW ORIGINAL CLUSTER', 80, 255, 46, t.text, { font: 'bold' });
-                cv.text('Waze map remains unchanged', 85, 330, 28, t.dim);
+        ctx.loop('MAIN', 2, async () => {
+            try {
+                if (currentPage === 'DIAGNOSTICS') return await renderDiagnostics('MAIN_GFX');
+                if (currentPage === 'QR_REPORT') return await renderQr('MAIN_GFX');
+                if (currentPage === 'LIVE_LOGS') return await renderLiveLogs('MAIN_GFX');
+                const t=ctx.theme(),st=cluster.status();
+                const cv=ctx.canvas(1600,520).clear(t.bg);
+                const layout=settings.get('layout');
+                const names={stock:'BMW original',sixwb:'BMW 6WB',oem:'G21 OEM-style recreation',
+                    g80:'G80-inspired',sport:'M Sport',classic:'Classic',minimal:'Minimal digital'};
+                const activeOptions={accent:settings.get('accent'), colorMode:settings.get('colorMode'),
+                    rgbRed:settings.get('rgbRed'),rgbGreen:settings.get('rgbGreen'),rgbBlue:settings.get('rgbBlue'),
+                    colorBrightness:settings.get('colorBrightness'),cycleSeconds:settings.get('cycleSeconds'),
+                    sixwbTheme:settings.get('sixwbTheme'),sixwbColorSource:settings.get('sixwbColorSource')};
+                const color=colorHex(layout==='sixwb'?resolve6WBColor(activeOptions,Date.now()):resolveColor(activeOptions,Date.now()));
+                G.frame(cv,t,['Custom Cluster'],0,[{text:st.ready?'RENDERER READY':'RENDERER OFFLINE'}]);
+                cv.text('Selected KOMBI layout',48,100,27,t.dim);
+                cv.text(names[layout]||layout||'Unknown',48,164,44,t.text);
+                cv.text('Instrument colour: '+color,48,211,23,t.text);
+                cv.text('Test KOMBI sends this layout to the instrument display only.',48,264,21,t.text);
+                cv.text('Waze: '+waze.status,48,309,21,t.dim);
+                cv.text('Test status: '+(st.panelActive?'REQUESTED / '+st.secondsLeft+'s remaining':testNotice).slice(0,103),
+                    48,366,21,st.panelActive?'#2fd27a':t.text);
+                cv.text('Last renderer result: '+String(st.disarmReason||'-').slice(0,90),48,406,19,t.dim);
+                cv.text('Renderer: '+(st.ready?'Connected':'Offline'),1100,110,24,st.ready?'#2fd27a':t.warn);
+                cv.text('Selector: '+(st.gearPosition||'?'),1100,157,23,t.text);
+                cv.text('Live speed/RPM: '+(st.live?'YES':'NO'),1100,201,21,t.text);
+                cv.text('Sample age: '+ageText(st.sampleAgeSeconds),1100,240,20,t.dim);
+                cv.text('KOMBI safe: '+(st.parked?'YES':'NO'),1100,280,22,st.parked?'#2fd27a':t.warn);
+                cv.text('Slot: '+String(st.panelTargetState||'-').slice(0,25),1100,324,19,t.dim);
+                cv.text(st.panelActive?'Test active':'No active custom panel',1100,365,19,t.text);
+                cv.text('Stationary tests only. Original BMW indicators must remain available.',48,482,19,t.warn);
+                await ui.image('MAIN_GFX',cv);
+                lastUiError='';
+            } catch(e){
+                const msg=String(e&&e.message||e);
+                if(msg!==lastUiError){lastUiError=msg;journal.write('UI ERROR '+currentPage+': '+msg);}
+                if(cluster.status().panelActive) cluster.restoreOriginal();
+                // A render exception must not leave the previous page painted.
+                try{
+                    const t=ctx.theme(),cv=ctx.canvas(1600,520).clear(t.bg);
+                    cv.text('Custom Cluster / display error',48,100,32,t.warn);
+                    cv.text(msg.slice(0,100),48,157,21,t.text);
+                    cv.text('Open Live Logs for details.',48,214,22,t.text);
+                    await ui.image('MAIN_GFX',cv);
+                }catch(_){}
             }
-
-            G.panel(cv, t, 1120, 48, 456, 450, 'Renderer / panel test');
-            cv.text('Cluster render: ' + (st.ready ? 'Connected' : 'Waiting'), 1150, 137, 24, st.ready ? '#2fd27a' : t.warn);
-            cv.text('Live speed/RPM: ' + (st.live ? 'YES' : 'NO') +
-                ' | Selector: ' + (st.gearPosition || '?'), 1150, 173, 19, st.parked ? '#2fd27a' : t.dim);
-            cv.text('Last accepted pair: ' + ageText(st.sampleAgeSeconds) +
-                ' | KOMBI safe: ' + (st.parked ? 'YES' : 'NO'), 1150, 197, 17, st.parked ? '#2fd27a' : t.dim);
-            cv.text('Panel: ' + (st.panelActive ? 'REQUESTED (' + st.secondsLeft + 's)' :
-                st.suspended ? 'CUSTOM RELEASED' : 'STOCK'),
-                1150, 224, 20, st.panelActive ? '#2fd27a' : t.text);
-            cv.text('Layer: ' + st.panelLayer.slice(0, 29) +
-                '  / Slot: ' + st.panelTargetState.slice(0, 12), 1150, 257, 16, t.dim);
-            cv.text('Test: ' + (!settings.get('enablePanelTests') || previewActive ? 'HMI ONLY' :
-                st.activeTestMode || settings.get('panelTestMode')) +
-                ' @ ' + settings.get('panelTarget'), 1150, 286, 16, t.dim);
-            cv.text('Last: ' + st.disarmReason.slice(0, 39), 1150, 314, 16, t.dim);
-            cv.text('Waze: ' + waze.status.slice(0, 34), 1150, 341, 18, t.text);
-            cv.text('iPhone event: ' + bridge.reported(), 1150, 369, 17, t.text);
-            cv.text('Phone bridge: ' + (bridge.url('on') ? 'ready' : 'off'), 1150, 396, 17, t.text);
-            if (bridge.url('on')) {
-                cv.text(bridge.url('on'), 1135, 418, 11, t.text);
-                cv.text(bridge.url('off'), 1135, 442, 11, t.text);
-            } else cv.text('Shortcuts URLs in Settings', 1150, 434, 17, t.dim);
-            if (qrError) cv.text('QR: ' + qrError.slice(0, 48), 1140, 463, 13, t.warn);
-
-            if (layout === 'g80' || layout === 'oem' || layout === 'sixwb') {
-                cv.text(previewActive ? 'Static preview: no KOMBI graphics are changed' :
-                    'KOMBI takeover only in verified P; OEM music may be hidden',
-                    1136, 474, 16, t.warn);
-            } else if (!st.live && layout !== 'stock') {
-                cv.fillRect(54, 460, 1000, 33, withAlpha('#e6ad37', 0.12));
-                cv.text(d.demo ? 'PREVIEW ONLY - never sent to the cluster' : 'No real signals: BMW cluster stays in control',
-                    70, 483, 20, t.warn);
-            }
-            return ctx.ui.image('MAIN_GFX', cv);
         });
     }
 });
