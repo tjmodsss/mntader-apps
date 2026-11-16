@@ -63,4 +63,32 @@ function bytesTotal(dir) {
     } } catch (_) {}
     return total;
 }
-module.exports = { EXT, USB_ROOTS, isMedia, safeName, youtubeId, scan, bytesTotal };
+/** The videos the phone uploaded (the app's own folder only; USB media is never listed here). */
+function listImported(root) {
+    const dir = path.join(root, 'videos'), out = [];
+    let names;
+    try { names = fs.readdirSync(dir); } catch (_) { return out; }
+    names.sort().forEach(name => {
+        if (name[0] === '.' || !isMedia(name)) return;
+        try { const st = fs.lstatSync(path.join(dir, name)); if (st.isFile()) out.push({name, size:st.size}); } catch (_) {}
+    });
+    return out;
+}
+/** Delete one uploaded video. Only a plain media file directly inside the app's folder qualifies. */
+function removeImported(root, name) {
+    const clean = safeName(name);
+    if (!clean || clean !== String(name) || !isMedia(clean)) throw new Error('Invalid video name');
+    const file = path.join(root, 'videos', clean);
+    let st;
+    try { st = fs.lstatSync(file); } catch (_) { throw new Error('Video not found'); }
+    if (!st.isFile()) throw new Error('Video not found');
+    fs.unlinkSync(file);
+    return file;
+}
+/** Rows of a paged list: page index clamped to what exists. */
+function pageOf(items, index, size) {
+    const pages = Math.max(1, Math.ceil(items.length / size));
+    const page = Math.max(0, Math.min(pages - 1, Math.floor(Number(index) || 0)));
+    return {page, pages, start:page * size, items:items.slice(page * size, page * size + size)};
+}
+module.exports = { EXT, USB_ROOTS, isMedia, safeName, youtubeId, scan, bytesTotal, listImported, removeImported, pageOf };

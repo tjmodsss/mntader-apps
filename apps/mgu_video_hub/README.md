@@ -1,7 +1,69 @@
-# MGU Video Hub 0.1.4 (experimental)
+# MGU Video Hub 0.2.0 (experimental)
 
 An independent BMW iDrive 7 / MGU video app in `NamelsMissing/mgu-apps`.
 UI language: English. It never writes to vehicle control units.
+
+## What changed in 0.2.0
+
+Interface
+
+- The page tabs (Library, YouTube, Player, Connection) are the kit's own header
+  tabs now, as in the other apps: touch them, or push the controller up. The
+  app no longer draws a second header, so the pages got about 80 px taller.
+- The **Colour theme** setting works (0.1.x ignored it and always drew blue).
+- Lists show eight videos per page as wide rows with the full title, source and
+  size; Previous / Next page properly (0.1.4 could land on a page that showed
+  only the last video).
+- The player draws the picture in 16:9. 0.1.4 handed the renderer a
+  1180 x 342 rectangle, which is 3.45:1.
+- The player shows the title, elapsed time, total length and a progress bar,
+  and has Play again at the end. +15 s is not offered in the last 15 seconds.
+- YouTube links show the video's title and length once they have been played
+  (yt-dlp reports both); until then the ID is shown.
+- Messages disappear by themselves after 6 to 10 seconds instead of staying
+  until the next tab change.
+- Connection is a checklist with one line per requirement and the reason when
+  one is not met. **Check again** looks for ffmpeg / yt-dlp / aplay again, so
+  tools installed while the app runs are found without a restart.
+- Phone page: lists the uploaded videos and saved links and can delete them
+  (0.1.x had no way to free the 768 MiB upload quota). Deleting a video that is
+  playing stops it first. USB media is never listed or deleted.
+- Bar buttons: **Next page**, **Play / Pause**, **Back**, **Audio EQ**,
+  **Settings**. Play / Pause on a list resumes the last video where it stopped.
+
+Fixes
+
+- **Fast-forward after pause.** ffmpeg's `-re` pacing follows the wall clock,
+  so a decoder continued after SIGSTOP raced through the time it had been
+  stopped: a 3.5 s pause played 59 frames (4 s of video) in the next half
+  second. The app now paces the frames itself (15 per second) and the decoder
+  simply waits on its full output pipe while paused.
+- **QR never appeared when Wi-Fi came up after the app.** The MGU's address was
+  read once at start. It is looked up again every 3 seconds now.
+- **Seeking a YouTube video ran yt-dlp again** (up to 25 s each time). The
+  resolved stream is reused for 10 minutes; it is dropped when it yields no
+  picture.
+- **Missing yt-dlp left the player "resolving" forever**, and was reported as
+  an uplink problem when the uplink was down too.
+- **Leaked frame buffers.** A killed app left its `/dev/shm/mgu-video-vhub-*`
+  file (1 to 2.3 MB of RAM each) behind. Buffers of processes that no longer
+  exist are removed at start.
+- The phone server retries when its port is still held by an old instance.
+- A duplicate upload answered with the full file-system path of the video; it
+  now says that a video of that name exists.
+- The first decoded frame is awaited before the picture is shown (an empty
+  I420 buffer is green).
+- The diagnostic log is written once per burst of events instead of once per
+  event (errors still at once, everything on exit).
+- The Audio EQ sheet is in English like the rest of the app and uses the theme.
+
+Not changed: the parked-only rule, the phone pairing token, the uplink proxies
+and the `mgu-video-net` root helper (still 0.1.0).
+
+The pause, pacing, end-of-file, resolver-cache and stop-condition behaviour is
+covered by host tests with a real ffmpeg. **Nothing in 0.2.0 has been run on a
+head unit yet**: the 16:9 picture, the header tabs with the controller and the
+A/V offset after a pause need a check in the car.
 
 ## Features
 
@@ -26,9 +88,10 @@ UI language: English. It never writes to vehicle control units.
   HTTP proxy authentication headers in the tested version. Neither proxy
   exposes a listening port on the car's Wi-Fi interfaces.
 - **Player**: video over mgu-render's protocol v4 (I420 frames in a 3-slot
-  `/dev/shm/mgu-video-*` ring); pause/resume, 15-second seek, stop. Touch
-  targets and iDrive navigation are provided by the shared MGU kit.
-- **Diagnostics / Logs (0.1.4)**: open **Connection → Diagnostics / Logs**
+  `/dev/shm/mgu-video-*` ring, 15 frames per second, paced by the app);
+  pause/resume, 15-second seek, play again, stop. Touch targets and iDrive
+  navigation are provided by the shared MGU kit.
+- **Diagnostics / Logs**: open **Connection → Logs**
   to view the latest events and scan a QR code that downloads a JSON report
   directly to the phone. Alternatively open the existing phone companion page
   and tap **Download diagnostic JSON**. The bounded log survives app restarts
@@ -46,6 +109,10 @@ UI language: English. It never writes to vehicle control units.
 The OAP Node 8 application runtime itself **cannot decode video**. The app
 needs a compatible **`ffmpeg` executable on the head unit**, accessible to the
 app's unprivileged user; it does not install, download or modify system codecs.
+`ffmpeg`, `yt-dlp` and `aplay` are looked up in the app's `PATH` and then in
+the app's own `data/bin` folder (whether the head unit allows executing files
+from there has not been verified); `MGU_FFMPEG` and `MGU_YTDLP` override the
+names.
 The renderer must report native `video` capability (`mgu-renderd` / mgu-render
 protocol v4). Without these, the app still opens its library and connection
 page, but actual video playback is explicitly disabled.
@@ -70,7 +137,7 @@ The following must be checked on the actual vehicle:
 2. Whether the video renderer capability is present on the installed version.
 3. Whether USB mounts are readable from the OAP app sandbox, and where they
    appear. If hidden, transfer to the app-private `data/videos` folder.
-4. Video Hub must show **READY - Wi-Fi port 18879 open** before its private QR
+4. Connection must show **Phone import ... ready** before the private QR
    is displayed. The companion's `listen()` alone does not open BMW's INPUT
    firewall. `mgu-video-net` manages a *separate*, tagged `nftables` rule in
    `ip filter input`; it never removes Phone Terminal's rule for port 18890.
@@ -88,7 +155,7 @@ The following must be checked on the actual vehicle:
    mgu-deploy then registers `mgu_video_hub` in the uplink's `apps.d` list.
    Reinstallation matters: simply changing `app.json` without rebuilding and
    installing the package does not grant Internet access.
-3. Check Video Hub → **Connection** → **MGU Store Internet**. `ROUTED - DNS
+3. Check Video Hub → **Connection** → **Internet**. `ROUTED - DNS
    proxy ready` means this app's own uplink lease and local DNS proxy exist.
    It does **not** guarantee YouTube is reachable or that the missing video
    binaries are installed. `Store online - app not routed` means the Store has
@@ -109,10 +176,10 @@ find /var/opt/public/oap -type f -name uplink.json 2>/dev/null
 The app's package must contain `"mguInternet": true` at the top level of its
 installed `package.json`, which the build script copies from `app.json`.
 
-### Collecting logs (0.1.4)
+### Collecting logs
 
-1. Update Video Hub to **0.1.4** and reproduce the problem with the car parked.
-2. Open **Connection → Diagnostics / Logs**. Scan the download QR using the
+1. Reproduce the problem with the car parked.
+2. Open **Connection → Logs**. Scan the download QR using the
    phone connected to the BMW's Wi-Fi Direct network, or scan the original
    Connection QR, open the phone page and use **Download diagnostic JSON**.
 3. Save the downloaded `mgu-video-hub-diagnostics.json` in Files and attach it
@@ -173,10 +240,28 @@ curl -i http://127.0.0.1:18879/
 An unauthenticated `/` request returning `403 Invalid pairing token` proves
 the local Video Hub HTTP service is listening. Do not publish your QR token.
 
+## Code layout
+
+| File | Role |
+|---|---|
+| `main.js` | Wiring: state, kit hooks, the view model the pages are drawn from |
+| `ui.js` | All drawing (lists, player, connection, logs); no state |
+| `safety.js` | Parked-only gate (fresh speed value at or below 0.5 km/h) |
+| `video_bridge.js` | ffmpeg / yt-dlp processes, frame pacing, the renderer's frame buffer |
+| `links.js` | Saved YouTube links with title and length |
+| `media.js` | Library scan, upload names, paging |
+| `companion.js`, `phone_page.js` | Phone page and its HTTP server |
+| `uplink.js`, `network_status.js` | MGU Store Internet proxies, firewall helper status |
+| `diagnostics.js` | Bounded, redacted event log |
+| `audio_eq.js` | Audio EQ sheet |
+
 ## Host tests
 
 ```sh
 node tests/video_hub.test.js
+node tests/video_hub_core.test.js    # parked gate, links, paced decoder, companion library
+node tests/video_hub_ui.test.js      # every page drawn; VIDEO_HUB_UI_DUMP=<dir> writes PNGs
+node tests/video_hub_app.test.js     # main.js: pages, bar buttons, every stop condition
 node tests/video_hub_network.test.js
 node tests/video_hub_uplink.test.js
 node tests/video_hub_diagnostics.test.js

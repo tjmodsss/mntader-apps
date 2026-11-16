@@ -38,22 +38,54 @@ class Companion {
     constructor(dir, events, log) {
         this.dir = dir; this.events = events || {}; this.log = log || console;
         this.token = crypto.randomBytes(18).toString('hex');
-        this.host = address(); this.port = PORT; this.http = null; this.error = ''; this.listening = false;
+        this.host = null; this.hostAt = 0; this.resolveAddress = (events && events.address) || address;
+        this.port = PORT; this.http = null; this.error = ''; this.listening = false;
         this.inflightBytes = 0;
     }
-    link() { return this.host ? 'http://' + this.host + ':' + this.port + '/?t=' + this.token : null; }
+    /** The MGU's address is looked up again every few seconds: the phone's Wi-Fi often comes up after the app. */
+    currentHost() {
+        if (Date.now() - this.hostAt >= 3000 || !this.hostAt) { this.host = this.resolveAddress(); this.hostAt = Date.now(); }
+        return this.host;
+    }
+    link(pathname) {
+        const host = this.currentHost();
+        return host ? 'http://' + host + ':' + this.port + (pathname || '/') + '?t=' + this.token : null;
+    }
+    authorized(given) {
+        const a = Buffer.from(String(given || ''), 'utf8'), b = Buffer.from(this.token, 'utf8');
+        return a.length === b.length && crypto.timingSafeEqual(a, b);
+    }
     report(event, detail) {
         try { if (this.events.failure) this.events.failure(event, detail); } catch (_) {}
     }
     start() {
         if (this.http) return;
-        this.http = http.createServer((req, res) => this.handle(req, res));
-        this.http.on('error', e => {
+        const server = this.http = http.createServer((req, res) => this.handle(req, res));
+        server.on('error', e => {
             this.listening = false;
-            this.error = e.message;
+            this.error = e.code === 'EADDRINUSE' ? 'Port ' + this.port + ' is in use (old app instance?)' : e.message;
             this.log.warn('[VideoHub] phone server: ' + e.message);
+            // Give the port up, so a later start() (main.js retries) can listen again.
+            if (this.http === server) this.http = null;
+            try { server.close(); } catch (_) {}
         });
-        this.http.listen(PORT, '0.0.0.0', () => { this.listening = true; this.error = ''; });
+        server.listen(this.port, '0.0.0.0', () => { if (this.http === server) { this.listening = true; this.error = ''; } });
+    }
+    /** Read a small JSON body; replies 400 itself when it is not one. */
+    json(req, res, next) {
+        let raw = '', over = false;
+        req.on('data', b => {
+            if (over) return;
+            raw += b.toString('utf8');
+            if (raw.length > 4096) { over = true; reply(res, 413, {error:'Request too large'}); req.destroy(); }
+        });
+        req.on('end', () => {
+            if (over) return;
+            let body;
+            try { body = JSON.parse(raw); } catch (_) { body = null; }
+            if (!body || typeof body !== 'object') return reply(res, 400, {error:'Invalid JSON'});
+            next(body);
+        });
     }
     handle(req, res) {
         if (!privateAddress(req.socket.remoteAddress)) return reply(res, 403, {error:'Local network only'});
@@ -69,13 +101,15 @@ class Companion {
                 'X-MGU-Video-Hub':'1'});
             return res.end('{"ok":true}');
         }
-        if (u.searchParams.get('t') !== this.token) return reply(res, 403, {error:'Invalid pairing token'});
+        if (!this.authorized(u.searchParams.get('t'))) return reply(res, 403, {error:'Invalid pairing token'});
         if (u.pathname === '/' && req.method === 'GET') return reply(res, 200, page, 'text/html; charset=utf-8');
         if (u.pathname === '/status' && req.method === 'GET') return reply(res, 200, {
             files: this.events.fileCount ? this.events.fileCount() : 0,
             links: this.events.linkCount ? this.events.linkCount() : 0,
             logs: this.events.logCount ? this.events.logCount() : 0,
         });
+        if (u.pathname === '/library' && req.method === 'GET') return this.library(res);
+        if (u.pathname === '/delete' && req.method === 'POST') return this.remove(req, res);
         if (u.pathname === '/diagnostics.json' && req.method === 'GET') return this.diagnostics(res);
         if (u.pathname === '/youtube' && req.method === 'POST') return this.youtube(req, res);
         if (u.pathname === '/upload' && req.method === 'POST') return this.upload(req, res);
@@ -94,19 +128,30 @@ class Companion {
             res.end(data);
         } catch (e) { return reply(res, 500, {error:'Unable to export diagnostics'}); }
     }
-    youtube(req, res) {
-        let raw = '';
-        req.on('data', b => {
-            raw += b.toString('utf8');
-            if (raw.length > 4096) req.destroy();
-        });
-        req.on('end', () => {
-            let input;
-            try { input = JSON.parse(raw).url; } catch (_) {
-                this.report('phone.youtube_invalid', 'Invalid JSON');
-                return reply(res, 400, {error:'Invalid JSON'});
+    /** What the phone page lists: uploaded videos (not USB media) and saved links. */
+    library(res) {
+        const files = media.listImported(this.dir);
+        let links = [];
+        try { if (this.events.links) links = this.events.links(); } catch (_) {}
+        return reply(res, 200, {files, links, usedBytes:files.reduce((n, f) => n + f.size, 0),
+            quotaBytes:QUOTA, fileLimitBytes:LIMIT});
+    }
+    remove(req, res) {
+        this.json(req, res, body => {
+            try {
+                if (body.kind === 'file' && this.events.removeFile) this.events.removeFile(String(body.name || ''));
+                else if (body.kind === 'link' && this.events.removeLink) this.events.removeLink(String(body.id || ''));
+                else return reply(res, 400, {error:'Nothing to delete'});
+            } catch (e) {
+                this.report('phone.delete_failed', e.message);
+                return reply(res, /not found/i.test(e.message) ? 404 : 400, {error:e.message});
             }
-            const id = media.youtubeId(input);
+            return reply(res, 200, {ok:true});
+        });
+    }
+    youtube(req, res) {
+        this.json(req, res, body => {
+            const id = media.youtubeId(body.url);
             if (!id) {
                 this.report('phone.youtube_invalid', 'Expected a YouTube video URL');
                 return reply(res, 400, {error:'Expected a YouTube video URL (not a playlist)'});
@@ -152,7 +197,10 @@ class Companion {
                 this.report('phone.upload_failed', error.message);
                 file.destroy();
                 if (created) { try { fs.unlinkSync(target); } catch (_) {} }
-                if (!res.headersSent && !res.destroyed) reply(res, error.code === 'EEXIST' ? 409 : 400, {error:error.message});
+                // Never echo a file-system path to the phone.
+                const exists = error.code === 'EEXIST';
+                if (!res.headersSent && !res.destroyed) reply(res, exists ? 409 : 400,
+                    {error:exists ? 'A video with this name is already on the car' : error.code ? 'Could not store the video (' + error.code + ')' : error.message});
             } else {
                 if (this.events.upload) this.events.upload(name);
                 reply(res, 201, {name, bytes:received});
@@ -168,6 +216,6 @@ class Companion {
         file.on('finish', () => { if (received === len) finish(null); });
         req.pipe(file);
     }
-    stop() { if (this.http) this.http.close(); this.http = null; this.listening = false; }
+    stop() { if (this.http) { try { this.http.close(); } catch (_) {} } this.http = null; this.listening = false; }
 }
 module.exports = { Companion, privateAddress, address, PORT, LIMIT, QUOTA };

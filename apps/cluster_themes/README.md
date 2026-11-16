@@ -54,11 +54,23 @@ The look of the M view in the newer M cars' Live Cockpit (M3, M4, M5), for any c
 
 - **Left:** speed along a white line with rounded corners, 0 to 200 mph (0 to 330 km/h). The band inside the line lights up from 0 to the needle.
 - **Right:** revs the same way, 0 to 8000 rpm, with yellow and red marks from your redline.
-- **Middle:** the speed and the gear, each over its own line, with the drive mode under the gear. With "Show Waze map inside the theme" on, the map shows between the two scales, and the window opens and closes without the theme being built again.
+- **Panels:** dark grey panels inside both scales, and a red glow by the needle, as on BMW's own M view.
+- **Middle:** the speed and the gear, each over its own line, with the speed in the other unit under it (km/h under mph, or the other way round) and the drive mode under the gear. With "Show Waze map inside the theme" on, the map shows in an oval window between the two scales that fades into the black, and the window opens and closes without the theme being built again.
 - **Corners:** fuel on the far left and oil temperature on the far right, as small dials.
 - **Bottom:** the clock, range and outside temperature, with BMW's own gear letter.
 
 <p align="center"><img src="../../docs/images/cluster-mview.png" width="900" alt="M view theme"></p>
+
+### Vector
+
+A race-sim style dash with angled frames and a music panel.
+
+- **Left:** a round rev counter in segments, 0 to 8000 rpm, red from your redline, with the speed and the gear inside it.
+- **Middle:** boost, torque and power as bars. With "Show Waze map inside the theme" on, the map shows here instead.
+- **Right:** coolant, oil, fuel and boost as rings, and the music panel: the song that is playing with its title, artist and time, read from the car's own now playing. When nothing is playing, the panel shows average speed, peak boost and lateral G instead. The music panel is experimental: please tell us in an issue whether it works with your sources (radio, Bluetooth, USB, CarPlay).
+- **Bottom:** the clock, range and outside temperature, with BMW's own gear letter.
+
+<p align="center"><img src="../../docs/images/cluster-vector.png" width="900" alt="Vector theme"></p>
 
 ### Minimal
 
@@ -86,7 +98,7 @@ A segmented rev arc sweeps across the top of the screen, white, then rally yello
 
 ### Retro 80s
 
-An 80s digital dash: amber seven-segment digits with their unlit 8s showing faintly behind, for the gear and the speed. A segmented rev bar runs across the top, bar graphs show oil, water and fuel on the left, and boost and two readouts sit on the right.
+An 80s digital dash: amber seven-segment digits with their unlit 8s showing faintly behind, for the gear and the speed. A segmented rev bar runs across the top, bar graphs show oil, water and fuel on the left, and boost and two readouts sit on the right. The clock, range and outside temperature along the bottom are seven-segment digits too.
 
 <p align="center"><img src="../../docs/images/cluster-retro80s.png" width="900" alt="Retro 80s theme"></p>
 

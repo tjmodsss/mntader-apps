@@ -6,7 +6,7 @@ Sieben echte parametrische Software-DSP-Bänder ergänzen die bisherige BMW-Klan
 
 ## Installation über MGU Store
 
-Quelle **NamelsMissing/mgu-apps**, Kanal **main** aktualisieren und **Equalizer DSP** installieren. Der Store installiert dabei den Hintergrunddienst `mgu-equalizer-dsp` 0.2.0 und die Renderer-Abhängigkeiten. Für die konkrete Audioanbindung auch **MGU Video Hub** auf **0.1.1** aktualisieren.
+Quelle **NamelsMissing/mgu-apps**, Kanal **main** aktualisieren und **Equalizer DSP** installieren. Der Store installiert dabei den Hintergrunddienst `mgu-equalizer-dsp` 0.2.1 und die Renderer-Abhängigkeiten. Für die konkrete Audioanbindung auch **MGU Video Hub** auf **0.1.1** aktualisieren.
 
 Der Store baut das App-Paket auf der MGU mit deren eigenem SDK. Das Repository enthält keine BMW-SDK-Dateien oder Diagnose-PRGs.
 

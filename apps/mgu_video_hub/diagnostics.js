@@ -36,6 +36,7 @@ class Diagnostics {
         this.session = crypto.randomBytes(5).toString('hex');
         this.events = [];
         this.writeError = '';
+        this.timer = null;
         try {
             if (fs.statSync(this.file).size > MAX_BYTES) throw new Error('Previous diagnostic log is oversized');
             const stored = JSON.parse(fs.readFileSync(this.file, 'utf8'));
@@ -49,10 +50,19 @@ class Diagnostics {
         if (!row) return;
         this.events.push(row);
         if (this.events.length > MAX_EVENTS) this.events.splice(0, this.events.length - MAX_EVENTS);
-        this.persist();
+        // Errors are written at once; routine events are bundled (one flash write per burst).
+        if (row.level === 'ERROR') this.persist();
+        else if (this.timer === null) {
+            this.timer = setTimeout(() => this.persist(), 1500);
+            if (this.timer.unref) this.timer.unref();
+        }
     }
 
+    /** Write what is pending now (app exit, diagnostic export). */
+    flush() { if (this.timer !== null) this.persist(); }
+
     persist() {
+        if (this.timer !== null) { clearTimeout(this.timer); this.timer = null; }
         const output = () => JSON.stringify({schema:1, app:'mgu_video_hub', events:this.events});
         let text = output();
         while (Buffer.byteLength(text, 'utf8') > MAX_BYTES && this.events.length > 1) {

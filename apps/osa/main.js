@@ -12,11 +12,13 @@ const G = require('./kit/gauges');
 const Car = require('./kit/car');
 const { withAlpha } = require('./kit/canvas');
 const TransmissionReader = require('./transmission');
+const turboIconPreview = require('./turbo-icon-preview');
 const fs = require('fs');
 const path = require('path');
 const { decode: decodePng } = require('./png');
 
 const W = 1600, H = 520;
+const ENGINE_RUNNING_RPM = 300;
 
 mgu.run({
     async start(ctx) {
@@ -116,6 +118,23 @@ mgu.run({
 
             const newsX = 1120;
             const milestones = [
+                ['0.2.44', 'Raised the oil warm-up message in the map area'],
+                ['0.2.43', 'Transparent message at the cluster bottom edge'],
+                ['0.2.42', 'Bottom-edge cluster message test with black background'],
+                ['0.2.41', 'English oil warm-up message on the cluster'],
+                ['0.2.40', 'Passive cluster capture and lower message test'],
+                ['0.2.39', 'Transparent background for cluster messages'],
+                ['0.2.38', 'Cluster message above factory notifications'],
+                ['0.2.37', 'Lower cluster message placement test'],
+                ['0.2.36', 'Four-second oil warm-up message on the cluster'],
+                ['0.2.35', 'Timed BC test with temporary map replacement'],
+                ['0.2.34', 'Map test records slot and layer states'],
+                ['0.2.33', 'BC test in the cluster map area'],
+                ['0.2.32', 'Three-phase BC diagnostics and refined oil drop'],
+                ['0.2.31', 'Cluster BC test and slimmer oil drop'],
+                ['0.2.30', 'Oil warm-up alert and cluster toggle'],
+                ['0.2.29', 'Oil drop preview below the coolant gauge'],
+                ['0.2.28', 'Turbo icon placement preview on the cluster'],
                 ['0.2.27', 'Larger engine oil gauge'],
                 ['0.2.26', 'Redesigned About and release milestones'],
                 ['0.2.25', 'Feedback QR codes'],
@@ -129,9 +148,52 @@ mgu.run({
             ];
             cv.text("WHAT'S NEW", newsX, 80, 22, t.text, { font: 'bold' });
             milestones.forEach(([version, label], index) => {
-                const y = 104 + index * 20;
+                const y = 104 + index * 12;
                 cv.text(version, newsX, y, 14, t.text, { font: 'bold' });
                 cv.text(label, newsX + 66, y, 14, t.dim);
+            });
+
+            cv.text('CLUSTER TEST', newsX, 390, 17, t.text, { font: 'bold' });
+            const phase = testPhase();
+            const passive = lastTestMode === 'clusterPassiveTest';
+            const lower = lastTestMode === 'clusterLowerTest';
+            const instructions = passive
+                ? ['Observation: baseline', 'Observation: watching BMW display', 'Observation: final capture']
+                : ['1/3 Before message', lower ? '2/3 Lower message on' : '2/3 Upper message on', '3/3 Message off'];
+            cv.text(phase < 0 ? (testResult ? 'Capture complete' : 'Start the test from Settings') :
+                instructions[phase] + ' (' + Math.ceil((testStarted + testEnds[phase] - mono()) / 1000) + ' s)',
+                newsX, 410, 14, t.dim);
+            const lines = clusterSlots.map((snapshot, index) => {
+                const label = (passive ? ['Start', 'During', 'End'] : ['Before', 'On', 'After'])[index];
+                if (!snapshot.size) return label + ': no slot data yet';
+                const changes = Array.from(snapshot, ([slot, states]) => {
+                    const before = clusterSlots[0].get(slot);
+                    const changed = index === 0 ? ['0x100', '0x200', '0x203'].includes(slot) || states.size > 1 :
+                        states.size > 1 || !before || [...states].some(state => !before.has(state));
+                    return changed ? slot + ' ' + [...states].join('/') : '';
+                }).filter(Boolean);
+                if (index > 0) {
+                    for (const slot of clusterSlots[0].keys()) {
+                        if (!snapshot.has(slot)) changes.push(slot + ' gone');
+                    }
+                }
+                const slotOrder = ['0x200', '0x203', '0x100'];
+                const priority = (line) => {
+                    const position = slotOrder.indexOf(line.split(' ')[0]);
+                    return position < 0 ? slotOrder.length : position;
+                };
+                changes.sort((a, b) => priority(a) - priority(b));
+                return label + ': ' + (changes.join(', ') || 'no slot change');
+            });
+            if (lastTestMode) lines.push('Check Control events: ' + checkControlCount +
+                (checkControlLast === null ? '' : ' | last at +' + checkControlLast + ' s'));
+            for (const prefix of ['Panel', 'Layer', 'Renderer']) {
+                const events = clusterEvents.get(prefix);
+                if (events && events.size) lines.push(prefix + ': ' + [...events].join(' / '));
+            }
+            lines.forEach((line, index) => {
+                while (cv.textWidth(line, 13) > 428) line = line.slice(0, -1);
+                cv.text(line, newsX, 427 + index * 13, 13, t.text);
             });
 
             cv.text('Developed by dzooky@bmrmodz', 640, aboutLayers.length > 2 ? 363 : 372, 18, t.text, { align: 'center', font: 'bold' });
@@ -165,7 +227,7 @@ mgu.run({
         let atfWarmSession = null;
         let atfCoolSession = pendingCool;
         const updateAtfHistory = (d) => {
-            const running = G.isNum(d.rpm) ? d.rpm >= 300 : null;
+            const running = G.isNum(d.rpm) ? d.rpm >= ENGINE_RUNNING_RPM : null;
             const atf = transmission.fresh ? transmission.temp : null;
             const now = Date.now();
             if (running === null) return;
@@ -232,7 +294,7 @@ mgu.run({
         const updateWarmHistory = (d, oilTarget, coolantTarget) => {
             const now = mono();
             if (d.demo || !G.isNum(d.rpm)) { warmSession = null; return; }
-            if (d.rpm >= 300) {
+            if (d.rpm >= ENGINE_RUNNING_RPM) {
                 if (!warmSession && !sessionDone) {
                     if (!G.isNum(d.oil) || !G.isNum(d.coolant) || !G.isNum(outsideTemp)) return;
                     warmSession = { start: now, outside: outsideTemp, oilStart: d.oil, coolantStart: d.coolant,
@@ -257,7 +319,92 @@ mgu.run({
                 sessionDone = false;
             }
         };
+        const mono = () => { const h = process.hrtime(); return h[0] * 1000 + h[1] / 1e6; };
         const car = new Car(ctx, ['rpm', 'speed', 'temps']);
+        const oilWarmTarget = () => Number(ctx.settings.get('warmOil')) || 80;
+        const warmupMessage = turboIconPreview.createWarmupMessage();
+        const messageTestEnds = [8000, 8000 + turboIconPreview.MESSAGE_MS, 16000 + turboIconPreview.MESSAGE_MS];
+        const testModes = ['clusterBcTest', 'clusterLowerTest', 'clusterPassiveTest'];
+        let testEnds = messageTestEnds;
+        let testMode = null;
+        let lastTestMode = null;
+        let checkControlCount = 0;
+        let checkControlLast = null;
+        const clusterSlots = [new Map(), new Map(), new Map()];
+        let testStarted = null;
+        let testResult = false;
+        const clusterEvents = new Map();
+        const testPhase = () => testStarted === null ? -1 : testEnds.findIndex(end => mono() - testStarted < end);
+        for (const key of testModes) if (ctx.settings.get(key)) ctx.settings.set(key, false);
+        ctx.settings.onChange((key, value) => {
+            if (!testModes.includes(key)) return;
+            if (!value) {
+                if (key === testMode) {
+                    testMode = null;
+                    testStarted = null;
+                }
+                return;
+            }
+            testMode = key;
+            lastTestMode = key;
+            testEnds = key === 'clusterPassiveTest' ? [8000, 82000, 90000] : messageTestEnds;
+            testStarted = mono();
+            clusterSlots.forEach(snapshot => snapshot.clear());
+            clusterEvents.clear();
+            testResult = false;
+            checkControlCount = 0;
+            checkControlLast = null;
+            for (const other of testModes) {
+                if (other !== key && ctx.settings.get(other)) ctx.settings.set(other, false);
+            }
+        });
+        ctx.signals.watch('de.bmw.infotainment.KombiInterface_2', '1', {
+            newCCMessage: () => {
+                if (testPhase() < 0) return;
+                checkControlCount++;
+                checkControlLast = Math.round((mono() - testStarted) / 1000);
+            },
+        }, log).catch(error => log.warn('Check Control observation: ' + error));
+        const recordCluster = (event) => {
+            const phase = testPhase();
+            if (phase < 0) return;
+            if (!Array.isArray(event)) {
+                const match = /^(Panel|Layer|Renderer): (.+)$/.exec(event);
+                if (match && (phase === 1 || match[1] === 'Renderer')) {
+                    const [, key, detail] = match;
+                    const seen = clusterEvents.get(key) || new Set();
+                    seen.add(detail);
+                    clusterEvents.set(key, seen);
+                }
+                return;
+            }
+            for (const line of event) {
+                const match = /^(?:slot )?(0x[0-9a-f]+)\s+(.*)$/i.exec(line);
+                if (!match) continue;
+                const [, slot, state] = match;
+                const snapshot = clusterSlots[phase];
+                const seen = snapshot.get(slot) || new Set();
+                const status = /\bstatus (\d+)/i.exec(state);
+                const mappings = state.match(/0x[0-9a-f]+ class \d+ map [1-9]/gi) || [];
+                const scene = mappings.map(mapping => mapping.replace(/ class \d+ map /i, ':')).join('+');
+                seen.add((status ? 's' + status[1] : 's?') + (scene ? '=' + scene : ''));
+                snapshot.set(slot, seen);
+            }
+        };
+        turboIconPreview.start(log, () => {
+            if (testStarted !== null) {
+                const phase = testPhase();
+                if (phase >= 0) {
+                    return phase === 1 && testMode !== 'clusterPassiveTest' ? oilWarmTarget() : null;
+                }
+                testResult = true;
+                ctx.settings.set(testMode, false);
+            }
+            const { demo, oil } = car.data();
+            if (demo || !G.isNum(oil)) return null;
+            const message = warmupMessage(oil, oilWarmTarget(), mono());
+            return ctx.settings.get('oilCluster') ? message : null;
+        }, recordCluster, () => testPhase() >= 0, () => testMode === 'clusterLowerTest');
         const transmission = new TransmissionReader(ctx);
         let outsideTemp = null;
         ctx.signals.watch('de.bmw.infrastructure.EnvironmentalInformation', '1', {
@@ -271,7 +418,6 @@ mgu.run({
         });
 
         const hist = [];
-        const mono = () => { const h = process.hrtime(); return h[0] * 1000 + h[1] / 1e6; };
         let lastHist = 0;
         // Keep the calculated heating rate stable between samples. The display
         // refreshes faster than the vehicle signals, so update this only on a
@@ -354,7 +500,7 @@ mgu.run({
             const cv = ctx.canvas(W, H).clear(t.bg);
 
             const d = car.data();
-            const oilTarget = Number(ctx.settings.get('warmOil')) || 80;
+            const oilTarget = oilWarmTarget();
             const coolantTarget = Number(ctx.settings.get('warmCoolant')) || 80;
             updateWarmHistory(d, oilTarget, coolantTarget);
             updateAtfHistory(d);
@@ -452,7 +598,7 @@ mgu.run({
                 });
                 cv.text('°C', value === null ? 1010 : 1018, 245, 27, t.dim);
 
-                const engineRunning = G.isNum(d.rpm) && d.rpm >= 300;
+                const engineRunning = G.isNum(d.rpm) && d.rpm >= ENGINE_RUNNING_RPM;
                 const atfMode = value !== null && value < 30 ? 'heat'
                     : (value !== null && value > 40 && !engineRunning ? 'cool' : null);
                 if (atfMode === 'heat') {

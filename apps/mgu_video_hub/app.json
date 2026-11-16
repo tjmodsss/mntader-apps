@@ -2,7 +2,7 @@
   "id": "mgu_video_hub",
   "title": "TJM Video Hub",
   "description": "Play local videos and open YouTube links while parked. Extra playback tools may be required.",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "mguInternet": true,
   "vendor": "TJM",
   "loggingId": "OB1D",
@@ -21,8 +21,8 @@
       "title": "TJM Video Hub",
       "buttons": [
         [
-          "BTN_TAB",
-          "Next tab"
+          "BTN_PAGE",
+          "Next page"
         ],
         [
           "BTN_ACTION",
@@ -31,10 +31,6 @@
         [
           "BTN_BACK",
           "Back"
-        ],
-        [
-          "BTN_IMPORT",
-          "Phone / USB"
         ],
         [
           "BTN_AUDIO_EQ",

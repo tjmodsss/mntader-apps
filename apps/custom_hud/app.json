@@ -2,7 +2,7 @@
   "id": "custom_hud",
   "title": "TJM Custom HUD",
   "description": "Speed, gear, shift bar, boost, oil and coolant on the windshield HUD, in Classic, M or Night themes",
-  "version": "0.1.45",
+  "version": "0.1.50",
   "vendor": "TJM",
   "loggingId": "OB2B",
   "iconGlyph": "HUD",
@@ -84,6 +84,16 @@
           "text",
           "DETAIL",
           " "
+        ],
+        [
+          "text",
+          "CPU",
+          "CPU measuring"
+        ],
+        [
+          "button",
+          "BTN_REFRESH",
+          "Refresh CPU and temperature"
         ]
       ]
     }

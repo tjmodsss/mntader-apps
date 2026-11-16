@@ -1,136 +1,208 @@
 'use strict';
 
-const fs = require('fs');
+// Video Hub: wiring. What is drawn lives in ui.js, the decoder in video_bridge.js,
+// the phone page's server in companion.js, the parked-only gate in safety.js.
 const path = require('path');
 const mgu = require('./kit/mgu');
+const G = require('./kit/gauges');
+const kitCanvas = require('./kit/canvas');
 const media = require('./media');
-const { VideoBridge, rendererRegister, videoOp, ID } = require('./video_bridge');
+const { VideoBridge, rendererRegister, videoOp, sweepStale, ID } = require('./video_bridge');
 const { Companion } = require('./companion');
 const { readNetworkStatus } = require('./network_status');
 const { StoreUplink } = require('./uplink');
 const { Diagnostics, safeText } = require('./diagnostics');
+const { ParkedGuard } = require('./safety');
+const { LinkStore } = require('./links');
 const { openEq } = require('./audio_eq');
-const qrcode = require('./qr_vendor');
+const { makeUi, clock, megabytes, PAGE, PAGE_SIZE, W, H } = require('./ui');
 
-const W = 1600, H = 520;
-const TABS = ['Library', 'YouTube', 'Player', 'Connection'];
-const COLOR = { bg:'#08131f', panel:'#142738', soft:'#1b3448', muted:'#9ab1c3',
-    white:'#f0f6fd', cyan:'#62d1ff', green:'#82e7bb', amber:'#f7be7b', red:'#ff918c' };
-const videoDir = dir => path.join(dir, 'videos');
-function trim(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n - 3) + '...' : s; }
-function text(cv, s, x, y, sz, c, opts) { cv.text(String(s).replace(/[^\x20-\x7e]/g, '?'), x, y, sz, c, opts || {}); }
-function btn(cv, title, x, y, w, h, cb, key, fill) {
-    cv.roundRect(x, y, w, h, 11, fill || COLOR.soft);
-    text(cv, title, x + w / 2, y + h / 2 + 7, 19, COLOR.white, {align:'center'});
-    cv.target(x, y, w, h, cb, key, 11);
-}
-function mmss(s) {
-    s = Math.max(0, Math.floor(Number(s) || 0));
-    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-}
-function qrDraw(cv, link, x, y, size) {
-    if (!link) return;
-    let qr;
-    try { qr = qrcode(0, 'M'); qr.addData(link); qr.make(); } catch (_) { return; }
-    const n = qr.getModuleCount(), q = 4, cell = Math.floor(size / (n + q * 2));
-    const span = cell * (n + q * 2);
-    cv.fillRect(x, y, span, span, '#ffffff');
-    for (let yy = 0; yy < n; yy++) for (let xx = 0; xx < n; xx++)
-        if (qr.isDark(yy, xx)) cv.fillRect(x + (xx + q) * cell, y + (yy + q) * cell, cell, cell, '#0a1723');
-}
-function loadLinks(dir) {
-    try { const a = JSON.parse(fs.readFileSync(path.join(dir, 'youtube.json'), 'utf8'));
-        return Array.isArray(a) ? a.filter(x => /^[A-Za-z0-9_-]{11}$/.test(x)).slice(-100) : [];
-    } catch (_) { return []; }
-}
-function saveLinks(dir, links) {
-    const filename = path.join(dir, 'youtube.json');
-    fs.writeFileSync(filename + '.tmp', JSON.stringify(links));
-    fs.renameSync(filename + '.tmp', filename);
-}
+const NOTICE_MS = {info:6000, warn:8000, error:10000};
 
 mgu.run({
     async start(ctx) {
         const log = ctx.log;
-        const diagnostics = new Diagnostics(ctx.dataDir, ctx.spec && ctx.spec.version || '0.1.4');
+        const ui = makeUi(G, kitCanvas);
+        const diagnostics = new Diagnostics(ctx.dataDir, ctx.spec && ctx.spec.version || '0.2.0');
         const record = (level, event, detail) => diagnostics.add(level, event, detail);
+        const guard = new ParkedGuard();
+        const links = new LinkStore(ctx.dataDir);
         const uplink = new StoreUplink(ctx.dataDir, log);
         uplink.start();
         const video = new VideoBridge(log, {
+            toolDirs: [path.join(ctx.dataDir, 'bin')],
             proxyProvider: () => uplink.ownLease() ? uplink.proxyUrl : null,
             mediaProxyProvider: () => uplink.ownLease() ? uplink.mediaProxyUrl : null,
             onEvent: record,
+            onMeta: meta => { try { links.describe(meta.id, meta); } catch (e) { record('WARN', 'youtube.meta_failed', e.message); }
+                if (current && current.id === meta.id && meta.title) current.name = meta.title; },
         });
-        let page = 0, selected = 0, startAt = 0, files = [], links = loadLinks(ctx.dataDir);
-        let notice = '', lastScan = 0, lastVideoBind = 0, boundGpu = null;
+
+        let page = PAGE.LIBRARY, origin = PAGE.LIBRARY, files = [], current = null, importCount = 0;
+        const listPage = {};                  // page -> index of the list page shown
+        let notice = null, lastScan = 0, lastVideoBind = 0, boundGpu = null;
         let network = {ready:false, error:'Network tool not responding'};
         let lastNetworkPoll = 0, lastNetworkReply = 0, networkPollPending = false;
-        let lastNetworkState = '', lastUplinkState = '', lastRendererReady = null, lastVehicleState = '';
-        let lastPhoneError = '', lastUplinkError = '';
-        let lastDiagnosticPoll = 0;
-        let speed = null, speedAt = 0, lastSource = null, importCount = 0;
+        let lastStatePoll = 0, lastPhoneRetry = 0;
+        const seen = {};                      // last logged value per diagnostic state
+
+        const swept = sweepStale();
         record('INFO', 'app.started', 'Node ' + process.version + ' / ' + process.arch +
-            '; ffmpeg=' + !!video.ffmpeg + '; yt-dlp=' + !!video.resolver + '; aplay=' + !!video.aplay);
+            '; ffmpeg=' + !!video.ffmpeg + '; yt-dlp=' + !!video.resolver + '; aplay=' + !!video.aplay +
+            (swept ? '; removed ' + swept + ' stale frame buffer(s)' : ''));
         if (!video.ffmpeg) record('WARN', 'decoder.missing', 'ffmpeg not installed or not executable for OAP user');
         if (!video.resolver) record('WARN', 'youtube.resolver_missing', 'yt-dlp not installed or not executable for OAP user');
-        const canPlay = () => speed !== null && Date.now() - speedAt < 5000 && speed <= .5;
-        const speedHint = () => speed === null || Date.now() - speedAt >= 5000 ?
-            'Waiting for real vehicle-speed data. Playback is locked.' :
-            speed > .5 ? 'Moving vehicle. Playback stopped.' : '';
+
+        /** A message in the footer (the player shows it in its panel) that goes away by itself. */
+        function say(text, level) {
+            level = level || 'info';
+            notice = text ? {text:String(text), level, until:Date.now() + NOTICE_MS[level]} : null;
+        }
+        function changed(key, value) {
+            if (seen[key] === value) return false;
+            seen[key] = value;
+            return true;
+        }
+
+        /* ---------------- safety: parked only, screen visible and in front ---------------- */
+        const busy = () => video.playing || !!video.resolving;
+        function halt(text, event) {
+            if (!busy()) return;
+            stop(); say(text, 'warn');
+            record('WARN', event, text);
+        }
         ctx.signals.watch('de.bmw.infotainment.vehicle.Vehicle2', '1', {
             statusCarSpeed2: v => {
-                const raw = v && v.speedVehicleCentreOfGravity;
-                if (typeof raw === 'number' && isFinite(raw) && raw >= 0 && raw !== 65535) {
-                    speed = raw * .015625; speedAt = Date.now();
-                    if (!canPlay() && (video.playing || video.resolving)) {
-                        video.stop(); notice = 'Playback stopped: moving vehicle.';
-                        record('WARN', 'safety.playback_stopped', 'Vehicle speed exceeds parked threshold');
-                    }
-                }
+                if (guard.update(v && v.speedVehicleCentreOfGravity) && !guard.allowed())
+                    halt('Playback stopped: the car is moving.', 'safety.playback_stopped');
             },
         }, log, {pollMs:2000}).then(s => {
-            if (s && s.error) {
-                log.warn('[VideoHub] speed: ' + s.error);
-                record('WARN', 'vehicle.signal_error', s.error);
-            }
+            if (s && s.error) { log.warn('[VideoHub] speed: ' + s.error); record('WARN', 'vehicle.signal_error', s.error); }
         }).catch(e => {
             log.warn('[VideoHub] speed: ' + e.message);
             record('ERROR', 'vehicle.watch_failed', e.message);
         });
+        ctx.ui.onVisible((name, visible) => {
+            if (name === 'MAIN' && !visible) halt('Playback stopped when the app was closed.', 'safety.screen_hidden');
+        });
+        if (ctx.ui.onFocus) ctx.ui.onFocus(() => {
+            if (!ctx.ui.hasFocus('MAIN')) halt('Playback stopped: another screen has focus.', 'safety.focus_lost');
+        });
 
+        /* ---------------- library ---------------- */
         function rescan() {
             const previous = files.length;
             files = media.scan(ctx.dataDir);
-            selected = Math.max(0, Math.min(selected, Math.max(0, entries().length - 1)));
             lastScan = Date.now();
             if (files.length !== previous) record('INFO', 'library.changed', 'files=' + files.length);
         }
-        function addYoutube(id) {
-            links = links.filter(x => x !== id).concat([id]).slice(-100);
-            saveLinks(ctx.dataDir, links);
-            notice = 'Added YouTube video ' + id;
-            log.info('[VideoHub] YouTube video added: ' + id);
-            record('INFO', 'youtube.link_added', 'videoId=' + id);
+        function entries(which) {
+            if (which === PAGE.LIBRARY) return files.map(f => ({id:f.id, type:'local', path:f.path, source:f.source,
+                title:f.name.replace(/\.[A-Za-z0-9]{2,4}$/, ''), detail:(f.source === 'USB' ? 'USB drive' : 'Uploaded') + '  ·  ' + megabytes(f.size)}));
+            if (which === PAGE.YOUTUBE) return links.list().map(l => ({id:l.id, type:'youtube', source:'YouTube',
+                title:l.title || 'YouTube video ' + l.id,
+                detail:l.title ? (l.duration ? clock(l.duration) + '  ·  ' : '') + 'Online stream' : 'Title appears after the first playback'}));
+            return [];
         }
-        function statusSnapshot() {
-            return {
-                capabilities:{rendererV4:gpuReady(), ffmpeg:!!video.ffmpeg,
-                    ytDlp:!!video.resolver, aplay:!!video.aplay},
-                uplink:{state:uplink.status(), appLease:!!uplink.ownLease()},
-                phone:{serverListening:phone.listening, firewallReady:!!network.ready,
-                    firewallError:safeText(network.error || phone.error || '')},
-                vehicle:{speedState:speedHint() || 'Parked and signal fresh', playbackAllowed:canPlay()},
-                player:{status:safeText(video.status), error:safeText(video.error),
-                    frames:video.frames, sourceType:lastSource ? lastSource.type : null,
-                    playing:video.playing, paused:video.paused},
-                library:{files:files.length, youtubeLinks:links.length, imports:importCount},
-            };
+        const listOf = which => media.pageOf(entries(which), listPage[which] || 0, PAGE_SIZE);
+
+        /* ---------------- playback ---------------- */
+        function gpuReady() {
+            const gpu = ctx.display && ctx.display.gpu;
+            return !!(gpu && ctx.display.active('MAIN') && gpu.ready && gpu.native && gpu.info && gpu.info.video);
         }
+        function stop() { video.stop(); lastVideoBind = 0; }
+        /** Why nothing can be played right now ('' when it can). */
+        function blocked() {
+            if (!guard.allowed()) return {text:guard.hint(), event:'safety.playback_blocked', level:'WARN'};
+            if (!gpuReady()) return {text:'The video renderer is not available. See Connection.', event:'renderer.unavailable', level:'ERROR'};
+            if (!video.ffmpeg) return {text:'ffmpeg is missing on the MGU. See Connection.', event:'decoder.missing', level:'ERROR'};
+            return null;
+        }
+        function begin(source, seconds) {
+            const why = blocked();
+            if (why) { say(why.text, why.level === 'ERROR' ? 'error' : 'warn'); record(why.level, why.event, why.text); return false; }
+            record('INFO', 'playback.request', 'source=' + source.type + (source.type === 'youtube' ? ' videoId=' + source.id : '') + ' seek=' + Math.round(seconds || 0));
+            current = source;
+            video.start(source, seconds || 0, Number(ctx.settings.get('resolution')), ctx.settings.get('audio'));
+            origin = source.type === 'youtube' ? PAGE.YOUTUBE : PAGE.LIBRARY;   // where Back leads
+            page = PAGE.PLAYER; notice = null; lastVideoBind = 0;
+            return true;
+        }
+        function play(item) {
+            if (!item) { say('Choose a video in Library or YouTube.'); return; }
+            begin(item.type === 'youtube' ? {type:'youtube', id:item.id, name:item.title, kind:'youtube'} :
+                {type:'local', id:item.id, path:item.path, name:item.title, kind:item.source === 'USB' ? 'USB' : 'Library'}, 0);
+        }
+        function toggle() {
+            if (!guard.allowed()) { stop(); say(guard.hint(), 'warn'); return; }
+            if (video.resolving) return;
+            if (video.playing) video.pause();
+            else if (current) begin(current, video.ended || video.error ? 0 : video.position);
+            else say('Choose a video in Library or YouTube.');
+        }
+        function seek(delta) {
+            if (!current || !video.playing) return;
+            const target = Math.max(0, video.position + delta);
+            if (video.duration && target >= video.duration - 1) { say('That is past the end of the video.'); return; }
+            begin(current, target);
+        }
+        function open(next) {
+            if (next === PAGE.PLAYER && !current) { say('Choose a video in Library or YouTube.'); return; }
+            if (page === PAGE.PLAYER && next !== PAGE.PLAYER) stop();
+            if (next !== page) notice = null;
+            page = next;
+            if (next === PAGE.LIBRARY) rescan();
+        }
+        function turn(delta) {
+            if (page !== PAGE.LIBRARY && page !== PAGE.YOUTUBE) return;
+            listPage[page] = media.pageOf(entries(page), (listPage[page] || 0) + delta, PAGE_SIZE).page;
+        }
+        function recheck() {
+            const before = JSON.stringify(video.probeTools());
+            rescan(); lastNetworkPoll = 0; lastPhoneRetry = 0;
+            say('Checked again: ' + files.length + (files.length === 1 ? ' video' : ' videos') + ', ffmpeg ' + (video.ffmpeg ? 'found' : 'missing') +
+                ', yt-dlp ' + (video.resolver ? 'found' : 'missing') + '.');
+            record('INFO', 'connection.rechecked', 'files=' + files.length + ' toolsChanged=' + (before !== JSON.stringify(video.probeTools())));
+        }
+        const actions = {
+            play, toggle, seek, open, turn, recheck,
+            rescan: () => { rescan(); say(files.length + (files.length === 1 ? ' video found.' : ' videos found.')); },
+            stop: () => { stop(); },
+            back: () => open(origin),
+            video: (cv, x, y, w, h, radius) => {
+                const gpu = ctx.display.gpu;
+                // The renderer forgets a buffer it is not told about: bind again every 1.3 s.
+                if (boundGpu !== gpu || Date.now() - lastVideoBind >= 1300) {
+                    if (rendererRegister(gpu, video.path, ID)) { boundGpu = gpu; lastVideoBind = Date.now(); }
+                }
+                videoOp(cv, ID, x, y, w, h, radius);
+            },
+        };
+
+        /* ---------------- phone companion ---------------- */
         const phone = new Companion(ctx.dataDir, {
-            youtube: addYoutube,
+            youtube: id => {
+                links.add(id); listPage[PAGE.YOUTUBE] = 0;
+                say('YouTube link received from the phone.');
+                record('INFO', 'youtube.link_added', 'videoId=' + id);
+            },
             upload: name => {
-                importCount++; rescan(); notice = 'Imported ' + name;
+                importCount++; rescan(); say('Imported ' + name);
                 record('INFO', 'phone.upload_completed', 'file=' + name);
+            },
+            links: () => links.list(),
+            removeFile: name => {
+                const file = path.join(ctx.dataDir, 'videos', name);
+                if (current && current.path === file) { stop(); current = null; if (page === PAGE.PLAYER) page = origin; }
+                media.removeImported(ctx.dataDir, name);
+                rescan(); say('Deleted ' + name);
+                record('INFO', 'phone.file_deleted', 'file=' + name);
+            },
+            removeLink: id => {
+                if (!links.remove(id)) throw new Error('Link not found');
+                if (current && current.type === 'youtube' && current.id === id) { stop(); current = null; if (page === PAGE.PLAYER) page = origin; }
+                record('INFO', 'youtube.link_removed', 'videoId=' + id);
             },
             fileCount: () => files.length,
             linkCount: () => links.length,
@@ -141,13 +213,14 @@ mgu.run({
                 return diagnostics.snapshot(statusSnapshot());
             },
         }, log);
-        try { phone.start(); record('INFO', 'phone.server_starting', 'port=' + phone.port); }
-        catch (e) {
-            phone.error = e.message; log.warn('[VideoHub] phone server: ' + e.message);
-            record('ERROR', 'phone.server_failed', e.message);
+        function startPhone() {
+            lastPhoneRetry = Date.now();
+            try { phone.start(); }
+            catch (e) { phone.error = e.message; log.warn('[VideoHub] phone server: ' + e.message); }
         }
+        startPhone();
+        record('INFO', 'phone.server_starting', 'port=' + phone.port);
         rescan();
-        const link = phone.link();
         function refreshNetwork() {
             if (networkPollPending) return;
             networkPollPending = true;
@@ -156,263 +229,114 @@ mgu.run({
                 network = error ? {ready:false, error:'Network tool unavailable: ' + error.message} : result;
                 lastNetworkReply = Date.now();
                 const state = network.ready ? 'ready' : network.error ? 'error:' + safeText(network.error) : 'waiting';
-                if (state !== lastNetworkState) {
-                    lastNetworkState = state;
-                    record(network.ready ? 'INFO' : 'WARN', 'phone.network_state', state);
-                }
+                if (changed('network', state)) record(network.ready ? 'INFO' : 'WARN', 'phone.network_state', state);
             });
         }
-        function entries() {
-            if (page === 0) return files;
-            if (page === 1) return links.map(id => ({id, name:'YouTube: ' + id, type:'youtube'}));
-            return [];
-        }
-        function gpuReady() {
-            const gpu = ctx.display.gpu;
-            return !!(ctx.display.active('MAIN') && gpu && gpu.ready && gpu.native && gpu.info && gpu.info.video);
-        }
-        function stop() { video.stop(); lastVideoBind = 0; }
-        function play(item, seek) {
-            if (!item) {
-                notice = 'Select a video first.';
-                record('WARN', 'playback.blocked', 'No video selected');
-                return;
-            }
-            record('INFO', 'playback.request', 'source=' + (item.type || 'local') +
-                (item.id ? ' videoId=' + item.id : '') + ' seek=' + (seek || 0));
-            if (!canPlay()) {
-                notice = speedHint();
-                record('WARN', 'safety.playback_blocked', notice);
-                return;
-            }
-            if (!gpuReady()) {
-                notice = 'Video renderer v4 unavailable; check Connection.';
-                record('ERROR', 'renderer.unavailable', notice);
-                return;
-            }
-            if (!video.ffmpeg) {
-                notice = 'ffmpeg missing on MGU; check Connection.';
-                record('ERROR', 'decoder.missing', notice);
-                return;
-            }
-            lastSource = item.type === 'youtube' || item.id && /^[A-Za-z0-9_-]{11}$/.test(item.id) ?
-                {type:'youtube', id:item.id, name:item.name} : {type:'local', path:item.path, name:item.name};
-            video.start(lastSource, seek || 0, Number(ctx.settings.get('resolution')), ctx.settings.get('audio'));
-            page = 2; notice = ''; lastVideoBind = 0;
-        }
-        function action() {
-            if (page === 2) {
-                if (!canPlay()) { stop(); notice = speedHint(); return; }
-                if (video.child) video.pause();
-                else if (lastSource) play(lastSource, video.position);
-            } else if (page === 0 || page === 1) play(entries()[selected]);
-            else if (page === 4) tab(3);
-            else { page = 0; rescan(); }
-        }
-        function tab(i) {
-            if (i === 2 && !lastSource) { notice = 'Choose a video in Library or YouTube.'; return; }
-            if (page === 2 && i !== 2) stop();
-            page = i; selected = 0; startAt = 0; notice = '';
-            if (i === 0) rescan();
-        }
-        ctx.ui.onClick('BTN_TAB', () => tab((page + 1) % TABS.length));
-        ctx.ui.onClick('BTN_ACTION', action);
-        ctx.ui.onClick('BTN_BACK', () => { if (page === 4) tab(3); else { stop(); tab(0); } });
-        ctx.ui.onClick('BTN_IMPORT', () => tab(3));
-        ctx.ui.onClick('BTN_AUDIO_EQ', () => openEq(ctx).catch((e) => { notice = String(e.message || e); }));
-        ctx.ui.onVisible((name, visible) => {
-            if (name === 'MAIN' && !visible && (video.playing || video.resolving)) {
-                stop(); notice = 'Playback stopped when the app was closed.';
-                record('WARN', 'safety.screen_hidden', notice);
-            }
-        });
-        if (ctx.ui.onFocus) ctx.ui.onFocus(() => {
-            if (!ctx.ui.hasFocus('MAIN') && (video.playing || video.resolving)) {
-                stop(); notice = 'Playback stopped: another screen has focus.';
-                record('WARN', 'safety.focus_lost', notice);
-            }
-        });
-        const onExit = () => {
-            record('INFO', 'app.exiting', 'Stopping video and companion');
-            stop(); phone.stop(); uplink.stop();
-        };
-        process.on('exit', onExit);
 
-        function drawHeader(cv) {
-            cv.fillRect(0, 0, W, 8, COLOR.cyan);
-            text(cv, 'MGU  /  VIDEO HUB', 45, 50, 25, COLOR.white);
-            text(cv, canPlay() ? 'PARKED' : 'PLAYBACK LOCKED', 1540, 49, 17,
-                canPlay() ? COLOR.green : COLOR.red, {align:'right'});
-            TABS.forEach((t, i) => {
-                const x = 45 + i * 385, current = page === i || page === 4 && i === 3;
-                cv.roundRect(x, 69, 368, 48, 12, current ? '#24475c' : COLOR.panel);
-                if (current) cv.fillRect(x + 14, 112, 338, 4, COLOR.cyan);
-                text(cv, t.toUpperCase(), x + 184, 101, 19, current ? COLOR.white : COLOR.muted, {align:'center'});
-                cv.target(x, 69, 368, 48, () => tab(i), 'TAB_' + i, 10);
-            });
-        }
-        function drawList(cv, type) {
-            const all = entries();
-            text(cv, type === 'youtube' ? 'SAVED YOUTUBE LINKS' : 'LOCAL VIDEOS + USB MEDIA', 54, 157, 23, COLOR.white);
-            text(cv, all.length + ' items', 1529, 157, 18, COLOR.muted, {align:'right'});
-            if (!all.length) {
-                cv.roundRect(48, 183, 1500, 260, 18, COLOR.panel);
-                text(cv, type === 'youtube' ? 'No YouTube links yet.' : 'No videos found.', 800, 270, 32, COLOR.white, {align:'center'});
-                text(cv, type === 'youtube' ? 'Open Phone / USB and send a YouTube link.' :
-                    'Upload from the phone or connect a USB stick with MP4 / MKV / MOV.',
-                    800, 319, 21, COLOR.muted, {align:'center'});
-            }
-            all.slice(startAt, startAt + 6).forEach((item, k) => {
-                const i = startAt + k, col = k % 3, row = Math.floor(k / 3);
-                const x = 46 + col * 517, y = 187 + row * 132, active = i === selected;
-                cv.roundRect(x, y, 490, 115, 15, active ? '#21475b' : COLOR.panel);
-                cv.roundRect(x + 15, y + 13, 94, 88, 12, active ? '#32617a' : '#263e51');
-                text(cv, type === 'youtube' ? 'YT' : item.source === 'USB' ? 'USB' : 'FILE',
-                    x + 62, y + 64, 24, COLOR.cyan, {align:'center'});
-                text(cv, trim(item.name, 29), x + 128, y + 45, 20, COLOR.white);
-                text(cv, type === 'youtube' ? 'Online - not downloaded' :
-                    item.source + '  /  ' + (item.size / 1048576).toFixed(1) + ' MB',
-                    x + 128, y + 77, 16, COLOR.muted);
-                cv.target(x, y, 490, 115, () => { selected = i; play(item); }, 'ITEM_' + i, 13);
-            });
-            if (all.length > 6) {
-                btn(cv, 'Previous', 1037, 450, 244, 49, () => {startAt = Math.max(0, startAt - 6);}, 'PREV');
-                btn(cv, 'Next', 1294, 450, 244, 49, () => {startAt = Math.min(all.length - 1, startAt + 6);}, 'NEXT');
-            }
-        }
-        function drawPlayer(cv) {
-            cv.roundRect(46, 137, 1180, 342, 14, '#01050b');
-            const active = video.playing || video.frames > 0;
-            if (gpuReady() && active && video.fd !== null) {
-                const gpu = ctx.display.gpu;
-                if (boundGpu !== gpu || Date.now() - lastVideoBind >= 1300) {
-                    if (rendererRegister(gpu, video.path, ID)) {boundGpu = gpu; lastVideoBind = Date.now();}
-                }
-                videoOp(cv, ID, 46, 137, 1180, 342, 13);
-            } else text(cv, video.status, 635, 305, 34, COLOR.muted, {align:'center'});
-            // Controls are drawn over the VIDEO op (and remain touch/iDrive targets).
-            cv.roundRect(1250, 137, 305, 342, 16, COLOR.panel);
-            text(cv, trim(lastSource && lastSource.name, 25), 1273, 179, 21, COLOR.white);
-            text(cv, video.status, 1274, 217, 20, video.error ? COLOR.amber : COLOR.green);
-            text(cv, mmss(video.position), 1274, 259, 31, COLOR.white);
-            btn(cv, video.paused ? 'Resume' : 'Pause', 1271, 291, 263, 49, action, 'PAUSE');
-            btn(cv, '- 15 s', 1271, 350, 124, 49, () => {
-                if (canPlay() && lastSource) play(lastSource, Math.max(0, video.position - 15));
-            }, 'SEEK_BACK');
-            btn(cv, '+ 15 s', 1410, 350, 124, 49, () => {
-                if (canPlay() && lastSource) play(lastSource, video.position + 15);
-            }, 'SEEK_FORWARD');
-            btn(cv, 'Stop', 1271, 410, 263, 49, () => { stop(); tab(0); }, 'STOP', '#5a343c');
-            if (video.error) text(cv, trim(video.error, 112), 58, 501, 17, COLOR.amber);
-        }
-        function drawConnection(cv) {
-            cv.roundRect(49, 142, 1497, 350, 19, COLOR.panel);
-            text(cv, 'PHONE IMPORT + PLAYER CHECK', 78, 180, 28, COLOR.white);
-            const ready = !!(link && phone.listening && network.ready &&
-                Date.now() - lastNetworkReply < 6000);
-            if (ready) qrDraw(cv, link, 89, 209, 244);
-            else {
-                cv.roundRect(89, 209, 244, 244, 14, '#0b1726');
-                text(cv, 'QR LOCKED', 211, 327, 26, COLOR.amber, {align:'center'});
-            }
-            text(cv, link ? trim(link.replace(/\?t=.*/, ''), 57) : 'Connect to a reachable MGU network.', 377, 238, 24, COLOR.cyan);
-            text(cv, ready ? 'Scan to upload videos or send YouTube links.' :
-                'Waiting for the local server and BMW Wi-Fi firewall.', 377, 276, 20, ready ? COLOR.green : COLOR.amber);
-            const netError = phone.error || (!phone.listening ? 'HTTP server starting' :
-                network.error ? network.error : network.ready ? 'READY - Wi-Fi port 18879 open' :
-                network.listening ? 'Opening BMW Wi-Fi firewall...' : 'Waiting for network helper');
+        /* ---------------- what the pages show ---------------- */
+        function connection() {
+            const link = phone.link();
+            const fresh = Date.now() - lastNetworkReply < 6000;
+            const ready = !!(link && phone.listening && network.ready && fresh);
+            const blocked = ready ? '' : phone.error ? phone.error :
+                !phone.listening ? 'The phone server is starting.' :
+                !link ? 'The MGU has no Wi-Fi address yet. Connect the phone to the car\'s Wi-Fi.' :
+                network.error ? 'The network helper (mgu-video-net) does not answer. Reinstall Video Hub from the Store.' :
+                network.listening ? 'Opening the Wi-Fi firewall for the phone...' : 'Waiting for the network helper.';
+            const audio = ctx.settings.get('audio') === 'alsa';
+            const up = uplink.ownLease();
             const rows = [
-                ['Render v4 video', gpuReady() ? 'READY' : 'NOT AVAILABLE'],
-                ['ffmpeg decoder', video.ffmpeg || 'NOT INSTALLED'],
-                ['yt-dlp for YouTube', video.resolver || 'NOT INSTALLED'],
-                ['MGU Store Internet', uplink.status()],
-                ['Experimental audio', ctx.settings.get('audio') === 'alsa' ? (video.aplay || 'aplay missing') : 'OFF'],
-                ['Local companion', trim(netError, 49)],
+                {name:'Phone import', state:ready ? 'ok' : phone.error || network.error ? 'bad' : 'wait',
+                    value:ready ? link.replace(/^http:\/\//, '').replace(/\/\?t=.*/, '') + '  ·  ready' : blocked},
+                {name:'Vehicle', state:guard.allowed() ? 'ok' : guard.state() === 'moving' ? 'bad' : 'wait',
+                    value:guard.allowed() ? 'Parked  ·  playback allowed' : guard.hint()},
+                {name:'Video renderer', state:gpuReady() ? 'ok' : 'bad',
+                    value:gpuReady() ? 'Ready' : ctx.settings.get('renderer') === 'software' ? 'Off: Settings > Renderer is set to Software' : 'Not available (needs idrive7-renderd 2.1.6+)'},
+                {name:'ffmpeg', state:video.ffmpeg ? 'ok' : 'bad', value:video.ffmpeg || 'Not installed: no video can be decoded'},
+                {name:'yt-dlp', state:video.resolver ? 'ok' : 'wait', value:video.resolver || 'Not installed: YouTube links cannot be played'},
+                {name:'Internet', state:up && uplink.proxyUrl && uplink.mediaProxyUrl ? 'ok' : 'wait', value:uplink.status()},
+                {name:'Audio', state:!audio ? 'off' : video.aplay ? 'ok' : 'bad',
+                    value:!audio ? 'Off (Settings > Audio output)' : video.aplay ? 'ALSA  ·  ' + video.aplay : 'aplay is missing: playback stays silent'},
             ];
-            rows.forEach((r, i) => {
-                const y = 302 + i * 31;
-                text(cv, r[0], 380, y, 17, COLOR.muted);
-                text(cv, trim(r[1], 49), 740, y, 17, r[1].indexOf('READY') === 0 ? COLOR.green : COLOR.white);
-            });
-            btn(cv, 'Rescan library', 1160, 320, 330, 50, () => {
-                rescan(); notice = files.length + ' media files found';
-                record('INFO', 'library.rescanned', 'files=' + files.length);
-            }, 'RESCAN');
-            btn(cv, 'Diagnostics / Logs', 1160, 389, 330, 52, () => tab(4), 'DIAGNOSTICS');
-            if (phone.error) text(cv, trim(phone.error, 70), 90, 479, 18, COLOR.red);
+            return {ready, link, blocked, rows};
         }
-        function drawDiagnostics(cv) {
-            cv.roundRect(49, 140, 1497, 352, 19, COLOR.panel);
-            text(cv, 'VIDEO HUB  /  DIAGNOSTICS', 78, 179, 27, COLOR.white);
-            const ready = !!(link && phone.listening && network.ready &&
-                Date.now() - lastNetworkReply < 6000);
-            const download = link ? link.replace('/?t=', '/diagnostics.json?t=') : null;
-            if (ready && download) qrDraw(cv, download, 95, 204, 222);
-            else {
-                cv.roundRect(95, 204, 222, 222, 12, '#0b1726');
-                text(cv, 'QR LOCKED', 206, 327, 23, COLOR.amber, {align:'center'});
+        function viewModel() {
+            if (notice && Date.now() > notice.until) notice = null;
+            const m = {page, allowed:guard.allowed(), lock:guard.state(), lockHint:guard.hint(), notice,
+                currentId:current ? current.id : null};
+            if (page === PAGE.LIBRARY || page === PAGE.YOUTUBE) {
+                m.list = listOf(page); m.list.total = entries(page).length;
+                listPage[page] = m.list.page;
+            } else if (page === PAGE.PLAYER) {
+                const starting = !!video.resolving || (video.playing && video.frames === 0);
+                m.player = {title:current ? current.name : '', kind:current ? current.kind : '',
+                    status:video.status, error:video.error, position:video.position, duration:video.duration,
+                    playing:video.playing, paused:video.paused, ended:video.ended, busy:starting,
+                    nearEnd:!!(video.duration && video.position + 15 >= video.duration - 1),
+                    picture:gpuReady() && video.fd !== null && video.frames > 0};
+            } else {
+                m.connection = connection();
+                if (page === PAGE.LOGS) m.logs = {link:phone.link('/diagnostics.json'), events:diagnostics.recent(10), total:diagnostics.events.length};
             }
-            text(cv, ready ? 'Scan to download diagnostic JSON' : 'Waiting for BMW Wi-Fi firewall',
-                93, 456, 17, ready ? COLOR.cyan : COLOR.amber);
-            text(cv, diagnostics.events.length + ' saved events  /  current and previous sessions',
-                370, 220, 20, COLOR.muted);
-            diagnostics.recent(6).forEach((entry, i) => {
-                const y = 256 + i * 31;
-                const line = entry.at.slice(11, 19) + '  ' + entry.level + '  ' + entry.event +
-                    (entry.detail ? ': ' + entry.detail : '');
-                text(cv, trim(line, 106), 371, y, 17,
-                    entry.level === 'ERROR' ? COLOR.red : entry.level === 'WARN' ? COLOR.amber : COLOR.white);
-            });
-            btn(cv, 'Back to Connection', 1135, 439, 364, 48, () => tab(3), 'DIAG_BACK');
+            return m;
         }
+        function statusSnapshot() {
+            return {
+                capabilities:{rendererV4:gpuReady(), ffmpeg:!!video.ffmpeg, ytDlp:!!video.resolver, aplay:!!video.aplay},
+                uplink:{state:uplink.status(), appLease:!!uplink.ownLease()},
+                phone:{serverListening:phone.listening, hasAddress:!!phone.currentHost(), firewallReady:!!network.ready,
+                    firewallError:safeText(network.error || phone.error || '')},
+                vehicle:{speedState:guard.hint() || 'Parked and signal fresh', playbackAllowed:guard.allowed()},
+                player:{status:safeText(video.status), error:safeText(video.error), frames:video.frames,
+                    sourceType:current ? current.type : null, playing:video.playing, paused:video.paused,
+                    position:Math.round(video.position), duration:video.duration},
+                library:{files:files.length, youtubeLinks:links.length, imports:importCount},
+            };
+        }
+        function logStates() {
+            const uplinkState = uplink.status();
+            if (changed('uplink', uplinkState)) record(uplink.ownLease() ? 'INFO' : 'WARN', 'uplink.state', uplinkState);
+            if (uplink.error && changed('uplinkError', uplink.error)) record('ERROR', 'uplink.proxy_failed', uplink.error);
+            if (phone.error && changed('phoneError', phone.error)) record('ERROR', 'phone.server_error', phone.error);
+            if (changed('phoneAddress', !!phone.currentHost())) record('INFO', 'phone.address', phone.host ? 'Private address available' : 'No private address');
+            const renderer = gpuReady();
+            if (changed('renderer', renderer)) record(renderer ? 'INFO' : 'WARN', 'renderer.state', renderer ? 'READY' : 'NOT AVAILABLE');
+            const vehicle = guard.allowed() ? 'PARKED' : guard.hint();
+            if (changed('vehicle', vehicle)) record(guard.allowed() ? 'INFO' : 'WARN', 'vehicle.speed_state', vehicle);
+        }
+
+        /* ---------------- the HMI's bar, the header's tabs ---------------- */
+        ctx.ui.onClick('BTN_PAGE', () => {
+            const next = (Math.min(page, PAGE.CONNECTION) + 1) % 4;
+            open(next === PAGE.PLAYER && !current ? PAGE.CONNECTION : next);
+        });
+        ctx.ui.onClick('BTN_ACTION', () => {
+            if (page === PAGE.PLAYER || current) toggle();
+            else play(listOf(page <= PAGE.YOUTUBE ? page : PAGE.LIBRARY).items[0]);
+        });
+        ctx.ui.onClick('BTN_BACK', () => {
+            if (page === PAGE.LOGS) open(PAGE.CONNECTION);
+            else if (page === PAGE.PLAYER) open(origin);
+            else open(PAGE.LIBRARY);
+        });
+        ctx.ui.onClick('BTN_AUDIO_EQ', () => openEq(ctx).catch(e => say(String(e.message || e), 'warn')));
+        if (typeof ctx.onTab === 'function') ctx.onTab(i => open(i));
+
+        process.on('exit', () => {
+            record('INFO', 'app.exiting', 'Stopping video and companion');
+            stop(); phone.stop(); uplink.stop(); diagnostics.flush();
+        });
+
         ctx.loop('MAIN', 12, () => {
-            if (Date.now() - lastNetworkPoll > 2500) {
-                lastNetworkPoll = Date.now(); refreshNetwork();
-            }
+            const now = Date.now();
+            if (now - lastNetworkPoll > 2500) { lastNetworkPoll = now; refreshNetwork(); }
+            // The phone server could not listen (port still held by an old instance): try again.
+            if (!phone.http && now - lastPhoneRetry > 5000) startPhone();
             // Stale or missing speed must fail closed, even without another signal event.
-            if (!canPlay() && (video.playing || video.resolving)) {
-                stop(); notice = speedHint();
-                record('WARN', 'safety.signal_stale', notice);
-            }
-            if (Date.now() - lastDiagnosticPoll > 3000) {
-                lastDiagnosticPoll = Date.now();
-                const uplinkState = uplink.status();
-                if (uplinkState !== lastUplinkState) {
-                    lastUplinkState = uplinkState;
-                    record(uplink.ownLease() ? 'INFO' : 'WARN', 'uplink.state', uplinkState);
-                }
-                if (uplink.error && uplink.error !== lastUplinkError) {
-                    lastUplinkError = uplink.error;
-                    record('ERROR', 'uplink.proxy_failed', uplink.error);
-                }
-                if (phone.error && phone.error !== lastPhoneError) {
-                    lastPhoneError = phone.error;
-                    record('ERROR', 'phone.server_error', phone.error);
-                }
-                const rendererReady = gpuReady();
-                if (rendererReady !== lastRendererReady) {
-                    lastRendererReady = rendererReady;
-                    record(rendererReady ? 'INFO' : 'WARN', 'renderer.state', rendererReady ? 'READY' : 'NOT AVAILABLE');
-                }
-                const vehicleState = canPlay() ? 'PARKED' : speedHint();
-                if (vehicleState !== lastVehicleState) {
-                    lastVehicleState = vehicleState;
-                    record(canPlay() ? 'INFO' : 'WARN', 'vehicle.speed_state', vehicleState);
-                }
-            }
-            if (Date.now() - lastScan > 15000 && page === 0) rescan();
-            const cv = ctx.canvas(W, H);
-            cv.clear(COLOR.bg);
-            drawHeader(cv);
-            if (page === 0) drawList(cv, 'local');
-            else if (page === 1) drawList(cv, 'youtube');
-            else if (page === 2) drawPlayer(cv);
-            else if (page === 4) drawDiagnostics(cv);
-            else drawConnection(cv);
-            if (notice && page !== 2) {
-                cv.roundRect(50, 451, 950, 52, 11, '#4a3339');
-                text(cv, trim(notice, 77), 65, 482, 19, '#ffd4cb');
-            }
+            if (!guard.allowed()) halt(guard.hint(), 'safety.signal_stale');
+            if (now - lastStatePoll > 3000) { lastStatePoll = now; logStates(); }
+            if (now - lastScan > 15000 && page === PAGE.LIBRARY) rescan();
+            const cv = ui.draw(ctx.canvas(W, H), ctx.theme(), viewModel(), actions);
             return ctx.ui.image('MAIN_GFX', cv);
         });
     },

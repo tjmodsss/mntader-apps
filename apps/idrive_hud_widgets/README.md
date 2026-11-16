@@ -50,10 +50,18 @@ Puts your own readouts on the windshield HUD: gear, a shift bar, boost, oil and 
   </tr>
   <tr>
     <th align="center">Retro</th>
-    <th align="center"></th>
+    <th align="center">M view</th>
   </tr>
   <tr>
     <td><img src="../../docs/images/hud-retro.png" width="300" alt="Retro layout"></td>
+    <td><img src="../../docs/images/hud-mview.png" width="300" alt="M view layout"></td>
+  </tr>
+  <tr>
+    <th align="center">Vector</th>
+    <th align="center"></th>
+  </tr>
+  <tr>
+    <td><img src="../../docs/images/hud-vector.png" width="300" alt="Vector layout"></td>
     <td></td>
   </tr>
 </table>
@@ -68,6 +76,8 @@ Puts your own readouts on the windshield HUD: gear, a shift bar, boost, oil and 
 - **Track:** 12 shift lights, the gear with SHIFT beside it, and a G-meter: a dot shows the cornering and braking or accelerating force (into the turn and up when you speed up), white, then amber from 0.5 g, then red from 0.8 g, with a fading trail and an outline of the most g this drive in every direction. Beside it the g now (left or right, accelerating or braking) and the best of the drive.
 - **Cruise:** four quiet figures in soft white: range, outside temperature, your average speed this drive (time moving only, after the first minute) and the time.
 - **Retro:** an 80s digital look in amber: a segmented rev bar, the gear in seven-segment digits, and boost, oil and water as figures with bar graphs.
+- **M view:** goes with the M view cluster theme: the rev bar, a big gear with the drive mode under it, the speed in the other unit next to BMW's own (km/h when the car shows mph), and one readout.
+- **Vector:** goes with the Vector cluster theme: shift lights, oil, coolant and boost as rings, and the song that is playing with its time (experimental), or range and outside temperature when nothing plays.
 - The clock, oil, coolant and shift point readouts can each show another sensor instead (page's Readouts tab).
   - **Shift lights:** they come on from 3000 rpm and fill up to the shift point. At the shift point everything goes red and SHIFT shows.
   - **Shift grades:** every upshift is graded on its peak rpm. EARLY means more than 250 rpm under the shift point, LATE more than 200 over it, COLD REV the same while the cold guard is on, LIMITER within 25 rpm of the redline, and anything in between is SPOT ON. Only shifts aimed at the shift point are graded: one more than 1500 rpm under it (an everyday shift) or one the gearbox made itself in D or S is left out, and the last grade stays on screen. When Redline 2.0.28 or newer is running, the shift point and the grade come from Redline, which learns a shift point for each gear.

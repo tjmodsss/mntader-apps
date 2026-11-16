@@ -2,7 +2,7 @@
   "id": "osa",
   "title": "TJM Oil Service",
   "description": "Engine, coolant and transmission oil temperature monitoring with live warm-up estimates and locally stored service history",
-  "version": "0.2.27",
+  "version": "0.2.44",
   "settingsBeforeLast": true,
   "vendor": "TJM",
   "loggingId": "OB04",
@@ -86,30 +86,43 @@
       ]
     },
     {
+      "key": "oilCluster",
+      "label": "Notification on cluster",
+      "type": "bool",
+      "default": false,
+      "notification": true
+    },
+    {
+      "key": "clusterBcTest",
+      "label": "Cluster message test (20 s)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "clusterLowerTest",
+      "label": "Lower cluster message test (20 s)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "clusterPassiveTest",
+      "label": "Cluster observation test (90 s)",
+      "type": "bool",
+      "default": false
+    },
+    {
       "key": "demo",
       "label": "Demo data",
       "type": "choice",
       "default": "auto",
-      "options": [
-        [
-          "auto",
-          "Auto"
-        ],
-        [
-          "on",
-          "Always"
-        ],
-        [
-          "off",
-          "Never"
-        ]
-      ]
+      "hidden": true,
+      "reset": 1
     },
     {
       "key": "warmOil",
       "label": "Oil is warm at",
       "type": "number",
-      "unit": "°C",
+      "unit": "\u00b0C",
       "default": 80,
       "steps": [
         60,
@@ -125,7 +138,7 @@
       "key": "warmCoolant",
       "label": "Coolant is warm at",
       "type": "number",
-      "unit": "°C",
+      "unit": "\u00b0C",
       "default": 80,
       "steps": [
         60,
@@ -156,6 +169,10 @@
     },
     "de.bmw.infrastructure.EnvironmentalInformation": {
       "ExteriorTemperature": "s"
+    },
+    "de.bmw.infotainment.KombiInterface_2": {
+      "_optional": "Observation of BMW Check Control messages",
+      "newCCMessage": "rs"
     }
   }
 }
