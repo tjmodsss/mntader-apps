@@ -81,6 +81,8 @@ jobs:
       - run: node kit/tools/test_redline_meter_draw.js
       - run: node kit/tools/test_redline_meter_m.js
       - run: node kit/tools/test_redline_hud_cache.js
+      - run: node kit/tools/test_coldstarts.js
+      - run: node kit/tools/test_wheelspin.js
       - run: node kit/tools/test_xdrive_live.js
       - run: python3 kit/tools/test_import_diagnostic_ru.py
       - run: python3 kit/tools/test_fit_to_unit.py
@@ -104,6 +106,8 @@ jobs:
       - run: node kit/tools/test_redline_nav.js
       - run: node kit/tools/test_redline_hud_nav.js
       - run: node kit/tools/test_redline_features.js
+      - run: node kit/tools/test_coldstarts.js
+      - run: node kit/tools/test_wheelspin.js
       - run: node kit/tools/test_fastkw.js
       - run: node kit/tools/test_redline_fuel.js
       - run: node kit/tools/test_redline_powerbar.js
