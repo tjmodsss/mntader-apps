@@ -2,7 +2,7 @@
   "id": "dpf",
   "title": "TJM DPF Status",
   "description": "Read-only diesel particulate filter status monitoring",
-  "version": "0.1.25",
+  "version": "0.1.30",
   "vendor": "TJM",
   "loggingId": "OB03",
   "iconGlyph": "temp",
@@ -10,7 +10,13 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM DPF Status"
+      "title": "TJM DPF Status",
+      "buttons": [
+        [
+          "BTN_SETTINGS",
+          "Settings"
+        ]
+      ]
     }
   ],
   "signals": {
@@ -23,5 +29,21 @@
         "sendTasuResponse"
       ]
     }
-  }
+  },
+  "settingsBeforeLast": true,
+  "settings": [
+    {
+      "key": "regenCluster",
+      "label": "DPF notification on cluster",
+      "type": "bool",
+      "default": true,
+      "notification": true
+    },
+    {
+      "key": "regenClusterTest",
+      "label": "Test DPF cluster message",
+      "type": "action",
+      "hint": "Three flashes each: yellow, red and green"
+    }
+  ]
 }

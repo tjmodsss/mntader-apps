@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Custom Cluster 0.6.7 - KOMBI-only test control and lightweight main status page.
+ * Custom Cluster 0.6.8 - KOMBI-only test control and lightweight main status page.
  * Stock is the default. Real values only can reach cluster-render; emulator
  * and demo values stay exclusively on the centre-screen preview.
  */
@@ -13,6 +13,7 @@ const { WazeControl } = require('./waze_control.js');
 const { resolveColor, resolve6WBColor, colorHex } = require('./cluster_colors.js');
 const QR = require('./cluster_diagnostics.js');
 const { LiveLog } = require('./live_log.js');
+const { BackgroundStatus } = require('./background_status.js');
 
 function ageText(age) { return age == null ? 'no sample' : age + 's old'; }
 function testSummary(st) {
@@ -61,9 +62,12 @@ mgu.run({
         });
         const waze = new WazeControl(log);
         const bridge = new PhoneBridge(ctx.dataDir, log, () => {
-            cluster.badge(bridge.reported() === 'opened');
+            cluster.phone(bridge.reported());
         });
+        const background = new BackgroundStatus({ dir: ctx.dataDir, file: 'custom-cluster-background.json',
+            version: (ctx.spec && ctx.spec.version) || '', startReason: ctx.app && ctx.app.startReason });
         let qrReport = null, qrPage = 0, qrMatrix = null, qrError = '', qrNotice = '';
+        let phoneLink = 'on', phoneQr = null, phoneQrFor = '';
         let clearArmedUntil = 0;
         let lastJournalStateAt = 0, lastUiError = '', testNotice = 'Select a layout, then test on KOMBI.';
         let txtPaths = [], txtError = '', txtReason = 'No manual text export yet';
@@ -106,7 +110,7 @@ mgu.run({
                 ui.text('BTN_LOG', 'Latest');
                 return;
             }
-            ui.text('BTN_LOG', 'Live Logs');
+            ui.text('BTN_LOG', currentPage === 'QR_REPORT' ? 'Phone link' : 'Live Logs');
             ui.text('BTN_TEST', currentPage === 'DIAGNOSTICS' ? 'Restore BMW' :
                 currentPage === 'MAIN' ?
                     'Test KOMBI' :
@@ -115,7 +119,8 @@ mgu.run({
                 (clearArmedUntil > Date.now() ? 'Confirm delete' : 'Delete logs') :
                 currentPage === 'DIAGNOSTICS' ? 'Back to cluster' : 'Diagnostics');
             ui.text('BTN_QR', currentPage === 'DIAGNOSTICS' ? 'Save TXT' :
-                currentPage === 'QR_REPORT' ? 'Next QR page' : 'QR logs');
+                currentPage === 'QR_REPORT' ? 'Next QR page' :
+                currentPage === 'PHONE' ? (phoneLink === 'on' ? 'Show "closed" link' : 'Show "opened" link') : 'QR logs');
         }
         function showPage(name) {
             if (currentPage !== name) clearArmedUntil = 0;
@@ -126,6 +131,7 @@ mgu.run({
         }
         ui.onVisible((name, visible) => {
             uiEvent(name + (visible ? ' visible' : ' hidden'));
+            if (name === 'MAIN' && visible) background.seen();
             // A fresh entry from the app tile, Home, or Settings must always
             // show the preview. All secondary views now live inside MAIN;
             // there are no hidden RHMI states that can steal focus.
@@ -140,6 +146,7 @@ mgu.run({
                 colorBrightness: settings.get('colorBrightness'), cycleSeconds: settings.get('cycleSeconds'),
                 phoneBadge: !!settings.get('phoneBadge'), wazeMap: settings.get('wazeMap'),
                 enablePanelTests: !!settings.get('enablePanelTests'),
+                kombiAuto: settings.get('kombiAuto') === 'parked' ? 'parked' : 'off',
                 coverOriginal: settings.get('coverOriginal') !== false,
                 panelTestMode: 'selected_layout', panelTarget: 'panel' });
             bridge.setEnabled(!!settings.get('phoneBridge'));
@@ -248,10 +255,15 @@ mgu.run({
         ui.onClick('BTN_QR', () => {
             if (currentPage === 'LIVE_LOGS') return liveLog.move(12);
             if (currentPage === 'DIAGNOSTICS') return saveTxt('manual Save TXT button');
+            if (currentPage === 'PHONE') {
+                phoneLink = phoneLink === 'on' ? 'off' : 'on';
+                return updateButtons();
+            }
             return currentPage === 'QR_REPORT' ? nextQrPage() : openQr();
         });
         ui.onClick('BTN_LOG', () => {
             if (currentPage === 'LIVE_LOGS') return liveLog.latest();
+            if (currentPage === 'QR_REPORT') return showPage('PHONE');
             cluster.pollStatus(true);
             return showPage('LIVE_LOGS');
         });
@@ -289,10 +301,18 @@ mgu.run({
                 updateButtons();
             }
             cluster.observeVehicle(car.data());
-            cluster.badge(bridge.reported() === 'opened');
+            bridge.tick();
+            cluster.phone(bridge.reported());
+            cluster.autoTick();
             cluster.apply();
             cluster.pollStatus(false);
             const now = Date.now();
+            const bs = cluster.status();
+            background.update({ layout: bs.layout, kombiAuto: bs.autoMode, kombiAutoState: bs.autoReason,
+                kombiShown: bs.panelActive, selector: bs.gearPosition, speedKmh: bs.speedKmh,
+                phoneBridge: !!settings.get('phoneBridge'), phoneLinkListening: bridge.listening(),
+                phoneStatusLine: !!settings.get('phoneBadge'), phoneReported: bridge.reported(),
+                rendererReady: bs.ready });
             if (now - lastJournalStateAt >= 15000) {
                 lastJournalStateAt = now;
                 const st = cluster.status();
@@ -328,6 +348,52 @@ mgu.run({
             cv.text('Older / Newer: scroll 12 lines  |  Latest: follow log  |  New app process: new log',
                 48, 496, 18, t.dim);
             if (page.dropped) cv.text('Oldest lines rotated: ' + page.dropped, 1200, 496, 16, t.dim);
+            return ui.image(target, cv);
+        }
+
+        // Phone status link: what to enter in the two iPhone automations, and
+        // whether the link can be reached at all. The address is never logged.
+        function phoneText() {
+            const state = bridge.reported(), age = bridge.ageSeconds();
+            return state === 'unknown' ? 'no report' :
+                state + (age === null ? '' : ' (' + (age < 90 ? age + ' s' : Math.round(age / 60) + ' min') + ' ago)');
+        }
+        function renderPhone(target) {
+            const t = ctx.theme();
+            const cv = ctx.canvas(1600, 520).clear(t.bg);
+            const on = !!settings.get('phoneBridge'), ok = '#2fd27a';
+            const url = bridge.url(phoneLink), net = bridge.net || {};
+            G.frame(cv, t, ['Custom Cluster', 'Phone link'], 0, [{ text: phoneLink === 'on' ? 'OPENED LINK' : 'CLOSED LINK' }]);
+            cv.text('Phone status link', 48, 96, 34, t.text, { font: 'bold' });
+            cv.text('1  Setting "iPhone Shortcuts bridge": ' + (on ? 'On' : 'Off - switch it on in Settings'),
+                48, 142, 21, on ? ok : t.warn);
+            cv.text('2  Listening: ' + (bridge.listening() ? bridge.host + ' port ' + bridge.port :
+                on ? 'waiting for the CarPlay Wi-Fi address' : 'off'), 48, 176, 21, bridge.listening() ? ok : t.warn);
+            cv.text('3  Firewall port: ' + (net.ready ? 'open (mgu-cluster-net)' :
+                'closed - ' + String(net.error || 'unknown').slice(0, 60)), 48, 210, 21, net.ready ? ok : t.warn);
+            cv.text('4  Last report from the phone: ' + phoneText() + '  |  reports: ' + (bridge.events || 0),
+                48, 244, 21, bridge.reported() === 'unknown' ? t.dim : ok);
+            cv.text('5  Status line: ' + (settings.get('phoneBadge') ? 'On (green = opened, red = closed)' :
+                'Off - switch on "Phone status line" in Settings'), 48, 278, 21, settings.get('phoneBadge') ? ok : t.warn);
+            cv.text('iPhone: Shortcuts > Automation > + > App > choose the app > "Is Opened" > Run Immediately',
+                48, 330, 18, t.dim);
+            cv.text('> action "Get Contents of URL" with the address from this QR code (scan it with the camera).',
+                48, 354, 18, t.dim);
+            cv.text('Second automation: "Is Closed" with the "closed" link (button below; it ends in /off).',
+                48, 378, 18, t.dim);
+            cv.text('iOS reports "closed" when the app leaves the foreground, even if it keeps running.',
+                48, 416, 18, t.warn);
+            if (!url) {
+                cv.text('No address yet:', 1090, 230, 22, t.warn);
+                cv.text('steps 1 and 2 must be green.', 1090, 262, 20, t.dim);
+                return ui.image(target, cv);
+            }
+            try {
+                if (phoneQrFor !== url) { phoneQr = QR.matrix(url); phoneQrFor = url; }
+                QR.draw(cv, phoneQr, 1090, 70, 380);
+            } catch (e) { cv.text('QR image error: ' + String(e.message).slice(0, 40), 1090, 230, 20, t.warn); }
+            cv.text(url.slice(0, 44), 48, 462, 17, t.text, { literal: true });
+            cv.text(url.slice(44), 48, 486, 17, t.text, { literal: true });
             return ui.image(target, cv);
         }
 
@@ -406,6 +472,7 @@ mgu.run({
                 if (currentPage === 'DIAGNOSTICS') return await renderDiagnostics('MAIN_GFX');
                 if (currentPage === 'QR_REPORT') return await renderQr('MAIN_GFX');
                 if (currentPage === 'LIVE_LOGS') return await renderLiveLogs('MAIN_GFX');
+                if (currentPage === 'PHONE') return await renderPhone('MAIN_GFX');
                 const t=ctx.theme(),st=cluster.status();
                 const cv=ctx.canvas(1600,520).clear(t.bg);
                 const layout=settings.get('layout');
@@ -422,17 +489,21 @@ mgu.run({
                 cv.text('Instrument colour: '+color,48,211,23,t.text);
                 cv.text('Test KOMBI sends this layout to the instrument display only.',48,264,21,t.text);
                 cv.text('Waze: '+waze.status,48,309,21,t.dim);
-                cv.text('Test status: '+(st.panelActive?'REQUESTED / '+st.secondsLeft+'s remaining':testNotice).slice(0,103),
+                cv.text('Test status: '+(st.panelActive?(st.autoRun?'AUTOMATIC / only while parked in P':'REQUESTED / '+st.secondsLeft+'s remaining'):testNotice).slice(0,103),
                     48,366,21,st.panelActive?'#2fd27a':t.text);
                 cv.text('Last renderer result: '+String(st.disarmReason||'-').slice(0,90),48,406,19,t.dim);
+                if(st.autoMode==='parked')cv.text('Automatic KOMBI (no menu needed): '+String(st.autoReason||'-').slice(0,70),48,444,19,
+                    st.autoRun&&st.panelActive?'#2fd27a':t.dim);
                 cv.text('Renderer: '+(st.ready?'Connected':'Offline'),1100,110,24,st.ready?'#2fd27a':t.warn);
                 cv.text('Selector: '+(st.gearPosition||'?'),1100,157,23,t.text);
                 cv.text('Live speed/RPM: '+(st.live?'YES':'NO'),1100,201,21,t.text);
                 cv.text('Sample age: '+ageText(st.sampleAgeSeconds),1100,240,20,t.dim);
                 cv.text('KOMBI safe: '+(st.parked?'YES':'NO'),1100,280,22,st.parked?'#2fd27a':t.warn);
                 cv.text('Slot: '+String(st.panelTargetState||'-').slice(0,25),1100,324,19,t.dim);
-                cv.text(st.panelActive?'Test active':'No active custom panel',1100,365,19,t.text);
-                cv.text('Stationary tests only. Original BMW indicators must remain available.',48,482,19,t.warn);
+                cv.text(st.panelActive?(st.autoRun?'KOMBI shown (automatic)':'Test active'):'No active custom panel',1100,365,19,t.text);
+                if(settings.get('phoneBridge'))cv.text('Phone app: '+phoneText(),1100,405,19,
+                    bridge.reported()==='opened'?'#2fd27a':bridge.reported()==='closed'?'#e0453a':t.dim);
+                cv.text('Stationary only. Original BMW indicators must remain available.',48,482,19,t.warn);
                 await ui.image('MAIN_GFX',cv);
                 lastUiError='';
             } catch(e){

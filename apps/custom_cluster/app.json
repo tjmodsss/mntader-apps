@@ -2,7 +2,7 @@
   "id": "custom_cluster",
   "title": "TJM Custom Cluster",
   "description": "KOMBI-only selected-layout parked tests and reliable text diagnostics.",
-  "version": "0.6.7",
+  "version": "0.6.9",
   "vendor": "TJM",
   "loggingId": "OB1E",
   "iconGlyph": "CC",
@@ -102,6 +102,22 @@
         [
           "off",
           "Hide Waze map"
+        ]
+      ]
+    },
+    {
+      "key": "kombiAuto",
+      "label": "Show layout in KOMBI automatically",
+      "type": "choice",
+      "default": "off",
+      "options": [
+        [
+          "off",
+          "Off (only manual Test KOMBI)"
+        ],
+        [
+          "parked",
+          "Automatically while parked in P (no menu needed)"
         ]
       ]
     },
@@ -359,15 +375,16 @@
     },
     {
       "key": "phoneBridge",
-      "label": "iPhone Shortcuts bridge",
+      "label": "iPhone Shortcuts bridge (works without the menu)",
       "type": "bool",
       "default": false
     },
     {
       "key": "phoneBadge",
-      "label": "Phone status badge (map/panel)",
+      "label": "Phone status line (green = opened, red = closed; works without the menu)",
       "type": "bool",
       "default": false
     }
-  ]
+  ],
+  "mguAppStartType": "autostart"
 }

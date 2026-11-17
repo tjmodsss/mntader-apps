@@ -5,17 +5,7 @@ const { ClusterRender } = require('./cluster_render_client.js');
 const probeShader = require('./panel_probe_shader.js');
 const { PALETTE, resolveColor, resolve6WBColor, colorHex } = require('./cluster_colors.js');
 const COLORS = Object.keys(PALETTE).reduce((m, k) => { m[k] = PALETTE[k].concat([1]); return m; }, {});
-const BADGE_FS = `#version 100
-precision mediump float;
-varying vec2 v_uv;
-void main() {
-  vec2 p=v_uv-vec2(0.5);
-  float r=length(p);
-  float outside=1.0-smoothstep(0.43,0.48,r);
-  float inside=1.0-smoothstep(0.16,0.20,r);
-  vec3 c=mix(vec3(0.03,0.26,0.17),vec3(0.36,1.0,0.60),inside);
-  gl_FragColor=vec4(c,outside);
-}`;
+const StatusLine = require('./status_line.js');
 // Independent tiny effects: inspired by the architecture (not the code) of
 // Cluster Layouts and Cluster Themes. No full-screen fragment shader here.
 const PIECE_FS = `#version 100
@@ -71,6 +61,8 @@ class ClusterLayers {
         this.layoutParts = [];
         this.layoutAccent = null;
         this.badgeRef = 0;
+        this.badgeTarget = null;
+        this.badgeState = '';
         this.ready = false;
         this.layerState = 'inactive';
         this.targetState = 'unknown';
@@ -102,7 +94,13 @@ class ClusterLayers {
             sixwbTheme: 'comfort', sixwbColorSource: 'original',
             colorMode: 'palette', colorBrightness: 100,
             panelTestMode: 'probe', panelTarget: 'panel', coverOriginal: true };
-        this.phoneOpen = false;
+        this.phoneState = 'unknown';
+        // Automatic KOMBI display (setting kombiAuto): only while parked, never after a failure.
+        this.autoRun = false;
+        this.autoSuppressed = false;
+        this.parkedSince = 0;
+        this.lastAutoTry = 0;
+        this.autoReason = 'off';
         this.lastSent = 0;
         this.armedUntil = 0;
         this.disarmReason = 'Off by default';
@@ -238,7 +236,7 @@ class ClusterLayers {
         this.layoutParts = []; this.layoutAccent = null;
         owned.forEach(ref => this.cr.drop(ref));
         if (this.effectRef) { this.cr.drop(this.effectRef); this.effectRef = 0; }
-        if (this.badgeRef) { this.cr.drop(this.badgeRef); this.badgeRef = 0; }
+        this.dropStatusLine();
         this.recoveryRequestedAt = Date.now();
         this.recoveryStatusAt = 0;
         this.recoveryTarget = this.activePanelTarget;
@@ -269,7 +267,7 @@ class ClusterLayers {
         }
         if (previous.layout !== options.layout || previous.panelTarget !== options.panelTarget ||
             previous.panelTestMode !== options.panelTestMode ||
-            options.enablePanelTests === false ||
+            (options.enablePanelTests === false && !this.autoRun) ||
             (['sixwb_dials','selected_layout'].indexOf(this.activeTestMode) >= 0 &&
                 (previous.sixwbTheme !== options.sixwbTheme ||
                  previous.sixwbColorSource !== options.sixwbColorSource ||
@@ -282,6 +280,8 @@ class ClusterLayers {
                  previous.cycleSeconds !== options.cycleSeconds ||
                  previous.coverOriginal !== options.coverOriginal)))
             this.disarm('Panel settings changed');
+        // A changed setting is a new decision: an automatic display may try again.
+        this.autoSuppressed = false;
         this.apply();
     }
     sample(d) {
@@ -329,7 +329,17 @@ class ClusterLayers {
             this.apply();
         }
     }
-    badge(opened) { this.phoneOpen = !!opened; this.apply(); }
+    /** Last event of the phone link: 'opened', 'closed' or 'unknown'. */
+    phone(state) {
+        state = StatusLine.valid(state) ? state : 'unknown';
+        if (state === this.phoneState) return;
+        this.phoneState = state;
+        this.apply();
+    }
+    dropStatusLine() {
+        if (this.badgeRef) this.cr.drop(this.badgeRef);
+        this.badgeRef = 0; this.badgeTarget = null; this.badgeState = '';
+    }
     live() {
         if (!this.lastSample || Date.now()-this.lastSample>=30000) return false;
         const t=this.latestSignalTimes;
@@ -362,14 +372,14 @@ class ClusterLayers {
         const target = this.options.panelTarget;
         return PANEL_TARGETS[target] ? target : 'panel';
     }
-    armPanel() {
+    armPanel(auto) {
         if (this.armedUntil) { this.tracePanel('test ended: Stopped by user'); this.restoreOriginal(); return false; }
         if (!(MODES[this.options.layout] > 0)) {
             this.disarmReason = 'Choose a custom instrument design first';
             this.tracePanel('test refused: ' + this.disarmReason);
             return false;
         }
-        if (this.options.enablePanelTests === false || this.options.panelTestMode === 'preview') {
+        if ((this.options.enablePanelTests === false && !auto) || this.options.panelTestMode === 'preview') {
             this.disarmReason = 'Experimental KOMBI test not enabled';
             return false;
         }
@@ -423,10 +433,60 @@ class ClusterLayers {
         this.armedUntil = Date.now() + PANEL_TEST_MS;
         this.tracePanel('test armed: ' + this.options.layout + '/' + this.activeTestMode +
             ' target=' + target + ' speed=' + this.data.speed + ' rpm=' + this.data.rpm);
-        this.disarmReason = this.activeTestMode + ' test: 12 seconds maximum';
+        this.disarmReason = auto ? 'automatic KOMBI display: only while parked in P' :
+            this.activeTestMode + ' test: 12 seconds maximum';
         this.apply();
         this.pollStatus(true);
         return !!this.panelRef && !!this.armedUntil;
+    }
+    /**
+     * Called every 250 ms, with or without the app window. With kombiAuto the selected
+     * layout is requested by itself once the car has been parked (P, standing, fresh
+     * speed + RPM) for 3 s, and kept (the 12 s test window is renewed) while that holds.
+     * Leaving P / moving releases it through the normal path. Any other end (renderer
+     * refusal, release, button) pauses the automatic display until the next time parked,
+     * so a failure can never turn into a request loop.
+     */
+    autoTick() {
+        const now = Date.now();
+        const wanted = this.options.kombiAuto === 'parked' && MODES[this.options.layout] > 0;
+        if (!wanted) {
+            if (this.autoRun && this.armedUntil) this.disarm('Automatic KOMBI switched off');
+            this.autoRun = false; this.parkedSince = 0; this.autoSuppressed = false;
+            this.autoReason = this.options.kombiAuto === 'parked' ? 'layout is BMW original' : 'off';
+            return;
+        }
+        if (!this.ready) { this.autoReason = 'renderer not connected'; return; }
+        if (!this.parked()) {
+            this.parkedSince = 0; this.autoSuppressed = false;
+            if (!this.armedUntil) this.autoRun = false;
+            this.autoReason = 'waiting: ' + this.testGuard();
+            return;
+        }
+        if (!this.parkedSince) this.parkedSince = now;
+        if (this.armedUntil) {
+            if (this.autoRun) { this.armedUntil = now + PANEL_TEST_MS; this.autoReason = 'showing (parked)'; }
+            else this.autoReason = 'manual test running';
+            return;
+        }
+        if (this.autoRun) { // it ended without leaving P: stop trying until the next parking
+            this.autoRun = false; this.autoSuppressed = true;
+            this.tracePanel('automatic KOMBI paused until next parking: ' + (this.disarmReason || 'ended'));
+        }
+        if (this.autoSuppressed) { this.autoReason = 'paused until next parking'; return; }
+        if (now - this.parkedSince < 3000) { this.autoReason = 'parked, starting in ' + Math.ceil((3000 - (now - this.parkedSince)) / 1000) + ' s'; return; }
+        if (this.recoveryRequestedAt && (!this.releaseConfirmed || !this.recoveryStatusAt ||
+            now - this.recoveryStatusAt > 10000)) {
+            this.autoReason = 'waiting for BMW release confirmation';
+            this.pollStatus(false);
+            return;
+        }
+        if (now - this.lastAutoTry < 2000) return;
+        this.lastAutoTry = now;
+        this.autoRun = this.armPanel(true);
+        if (this.autoRun) { this.autoReason = 'requested'; return; }
+        this.autoSuppressed = true;
+        this.autoReason = 'refused: ' + String(this.disarmReason || '-').slice(0, 60) + ' (paused until next parking)';
     }
     disarm(reason) {
         const hadPanel = !!this.panelRef;
@@ -546,14 +606,26 @@ class ClusterLayers {
         // automatically inject sport/classic/minimal artwork into the map
         // target when selected in settings. Keep independent Waze control.
         if(this.effectRef) { this.cr.drop(this.effectRef); this.effectRef=0; }
-        const wantBadge = this.options.phoneBadge && this.phoneOpen && !panelActive;
-        if (wantBadge && !this.badgeRef) {
-            // No contend: a stock layout does NOT seize the centre-slot from BMW.
-            // When Waze has that slot, this floats over it (same compositor).
-            this.badgeRef = this.cr.effect({ target: 'map', klass: 'overlay',
-                contend: false, x: 992, y: 9, w: 74, h: 74, fs: BADGE_FS });
+        // Phone status line. During a parked panel test it belongs to the
+        // tested layout; otherwise it sits in the map window. Never both.
+        const state = this.options.phoneBadge ? this.phoneState : 'unknown';
+        const where = !StatusLine.valid(state) ? null :
+            panelActive ? (this.panelRef ? this.activePanelTarget : null) : 'map';
+        if (this.badgeRef && where !== this.badgeTarget) this.dropStatusLine();
+        if (where && !this.badgeRef) {
+            const r = where === 'map' ? StatusLine.MAP_RECT : StatusLine.panelRect(this.options.layout);
+            // No contend: the centre slot is never taken from BMW. guide_hold 0:
+            // BMW's turn box stays visible. Where Waze has the map window, the
+            // line floats over its bottom edge (same compositor).
+            this.badgeRef = this.cr.effect({ target: where, klass: 'overlay', z: StatusLine.Z,
+                contend: false, guide_hold: false, x: r.x, y: r.y, w: r.w, h: r.h, fs: StatusLine.LINE_FS });
+            this.badgeTarget = this.badgeRef ? where : null;
+            this.badgeState = '';
         }
-        if (!wantBadge && this.badgeRef) { this.cr.drop(this.badgeRef); this.badgeRef = 0; }
+        if (this.badgeRef && this.badgeState !== state) {
+            this.cr.uniform(this.badgeRef, 'u_color', StatusLine.color(state));
+            this.badgeState = state;
+        }
     }
     status() {
         // The last *reported* selector position is independent from the
@@ -577,6 +649,7 @@ class ClusterLayers {
             recoveryState: this.recoveryState, recoveryRequestedAt: this.recoveryRequestedAt,
             recoveryTarget: this.recoveryTarget, releaseConfirmed: this.releaseConfirmed,
             suspended: this.suspended,
+            autoMode: this.options.kombiAuto === 'parked' ? 'parked' : 'off', autoRun: this.autoRun, autoReason: this.autoReason,
             testGuard: this.testGuard(),
             secondsLeft: this.panelRef ? Math.max(0, Math.ceil((this.armedUntil - Date.now()) / 1000)) : 0,
             color: colorHex(this.options.layout === 'sixwb' ? resolve6WBColor(this.options, Date.now())

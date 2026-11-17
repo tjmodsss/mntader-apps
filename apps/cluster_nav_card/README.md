@@ -95,6 +95,8 @@ event list, the app's page lists each event next to the card: its kind, directio
 one JSON line a record: `query` holds a queryContent answer whole, with the card it gave and how the
 distance was found (`distSrc`); `field` holds a notified field's value; `card` holds the card whenever it
 changes; `error` holds a failed query. Past 4 MB the file moves to `cluster_nav_card-events.1.jsonl`.
+The records are gathered and appended every 10 s (or every 64 KB), in the background, and what is left
+when the app stops; so the newest few seconds reach the file a little later.
 **Settings > Event log > Off** stops it. Copy it off the unit after a drive:
 `scp root@<unit-ip>:<path shown on the page> .`
 

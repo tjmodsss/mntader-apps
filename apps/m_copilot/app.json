@@ -2,7 +2,7 @@
   "id": "m_copilot",
   "title": "TJM Copilot",
   "description": "AI co-driver that answers with your car's own data: live readings, service list, fault memory, model and engine from the car, plus your tune and mods. Read-only.",
-  "version": "1.0.27",
+  "version": "1.0.30",
   "vendor": "TJM",
   "loggingId": "OB27",
   "iconGlyph": "copilot",
@@ -115,23 +115,19 @@
       "key": "theme",
       "label": "Colour theme",
       "type": "choice",
-      "default": "idrive_red",
+      "default": "m_tricolour",
+      "aliases": {
+        "idrive": "m_tricolour",
+        "idrive_red": "m_tricolour"
+      },
       "options": [
         [
-          "idrive_red",
-          "iDrive Red"
-        ],
-        [
-          "idrive",
-          "iDrive Blue"
+          "m_red",
+          "M Red"
         ],
         [
           "m_tricolour",
           "M Tricolour"
-        ],
-        [
-          "m_red",
-          "M Red"
         ],
         [
           "ice",

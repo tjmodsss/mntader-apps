@@ -25,7 +25,7 @@ const { headunit } = require('./headunit');
 
 const FILE = process.env.NAV_CARD_FILE || '/dev/shm/nav-card/guidance.json';
 const STALE_MS = 4000;
-const READ_MS = 250;
+const READ_MS = 500;
 
 /** A guidance object from the file's JSON (unknown manoeuvres and bad lanes left out); null when it has none. */
 function parse(j) {

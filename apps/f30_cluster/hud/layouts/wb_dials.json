@@ -27,18 +27,11 @@
       "style": "comfort",
       "color": "accent",
       "collar": {
-        "tex": "collar",
+        "tex": "collar_r8",
         "x": 0,
         "y": 0,
         "w": 1920,
         "h": 720
-      },
-      "cover": {
-        "tex": "cover",
-        "x": 588,
-        "y": 598,
-        "w": 736,
-        "h": 64
       },
       "shade": {
         "y": [
@@ -52,56 +45,6 @@
           0
         ]
       },
-      "patches": [
-        {
-          "rect": [
-            132,
-            662,
-            334,
-            703
-          ],
-          "when": "own:range"
-        },
-        {
-          "rect": [
-            340,
-            662,
-            455,
-            704
-          ],
-          "when": "own:clock"
-        },
-        {
-          "rect": [
-            1498,
-            662,
-            1667,
-            705
-          ],
-          "when": "own:temp"
-        },
-        {
-          "rect": [
-            590,
-            594,
-            1250,
-            665
-          ],
-          "soft": 13
-        }
-      ],
-      "cc": [
-        709,
-        598,
-        1243,
-        694
-      ],
-      "ccSym": [
-        700,
-        628,
-        757,
-        690
-      ],
       "window": [
         600,
         135,
@@ -119,7 +62,10 @@
         607,
         650,
         1270
-      ]
+      ],
+      "mask": {
+        "tex": "strip_mask"
+      }
     },
     {
       "id": "speedo",
@@ -151,11 +97,11 @@
         "y": 656,
         "fade": 26,
         "round": [
-          537.3,
-          621.3,
+          538.45,
+          621.2,
           42.0
         ],
-        "soft": 1,
+        "soft": -0.4,
         "cover": "limit"
       },
       "measure": "speed",
@@ -196,7 +142,15 @@
       },
       "cut": {
         "y": 656,
-        "fade": 26
+        "fade": 26,
+        "box": [
+          1240,
+          588,
+          1288,
+          631
+        ],
+        "soft": 1,
+        "boxWhen": "ccMarker"
       },
       "measure": "rpm",
       "scale": {
@@ -241,11 +195,11 @@
       "type": "text",
       "z": 5,
       "x": 321,
-      "y": 490,
+      "y": 491,
       "w": 60,
-      "h": 32,
+      "h": 31,
       "text": "{{limit}}",
-      "font": "wb_val",
+      "font": "wb_lim",
       "color": "ink",
       "align": "center",
       "conn": 2,
@@ -329,19 +283,6 @@
       }
     },
     {
-      "id": "fuel_icon",
-      "type": "icon",
-      "icon": "fuel",
-      "z": 5,
-      "x": 97,
-      "y": 566,
-      "w": 22,
-      "h": 26,
-      "color": "fg",
-      "conn": 1,
-      "toggle": "!baked"
-    },
-    {
       "id": "fuel_full",
       "type": "text",
       "z": 5,
@@ -368,19 +309,6 @@
       "color": "fg",
       "align": "center",
       "conn": 1
-    },
-    {
-      "id": "oil_icon",
-      "type": "icon",
-      "icon": "oilcan",
-      "z": 5,
-      "x": 1797,
-      "y": 566,
-      "w": 30,
-      "h": 26,
-      "color": "fg",
-      "conn": 2,
-      "toggle": "!baked"
     },
     {
       "id": "spd0",
@@ -683,7 +611,7 @@
       "x": 362,
       "y": 233,
       "w": 100,
-      "h": 26,
+      "h": 24,
       "text": "km/h",
       "font": "wb_cap",
       "color": "fg",
@@ -697,7 +625,7 @@
       "x": 1408,
       "y": 233,
       "w": 200,
-      "h": 26,
+      "h": 24,
       "text": "1/min x 1000",
       "font": "wb_cap",
       "color": "fg",
@@ -711,7 +639,7 @@
       "x": 1242,
       "y": 451,
       "w": 110,
-      "h": 25,
+      "h": 22,
       "text": "READY",
       "font": "wb_capb",
       "color": "fg",
@@ -725,7 +653,7 @@
       "x": 1280,
       "y": 523,
       "w": 70,
-      "h": 26,
+      "h": 24,
       "text": "OFF",
       "font": "wb_cap",
       "color": "dim",
@@ -749,8 +677,8 @@
       "id": "own_range",
       "type": "text",
       "z": 5,
-      "x": 139,
-      "y": 664,
+      "x": 143,
+      "y": 665,
       "w": 110,
       "h": 35,
       "text": "{{range}}",
@@ -764,12 +692,12 @@
       "id": "own_range_u",
       "type": "text",
       "z": 5,
-      "x": 253,
-      "y": 668,
+      "x": 259,
+      "y": 670,
       "w": 54,
       "h": 32,
       "text": "{{u:distLc}}",
-      "font": "wb_val",
+      "font": "wb_rowu",
       "color": "fg",
       "align": "left",
       "conn": 1,
@@ -780,7 +708,7 @@
       "type": "text",
       "z": 5,
       "x": 335,
-      "y": 664,
+      "y": 665,
       "w": 124,
       "h": 35,
       "text": "{{time}}",
@@ -794,8 +722,8 @@
       "id": "own_temp",
       "type": "text",
       "z": 5,
-      "x": 1505,
-      "y": 664,
+      "x": 1513,
+      "y": 665,
       "w": 110,
       "h": 35,
       "text": "{{ambient1}}",
@@ -809,83 +737,49 @@
       "id": "own_temp_u",
       "type": "text",
       "z": 5,
-      "x": 1619,
-      "y": 668,
+      "x": 1629,
+      "y": 670,
       "w": 46,
       "h": 32,
       "text": "{{u:temp}}",
-      "font": "wb_val",
+      "font": "wb_rowu",
       "color": "fg",
       "align": "left",
       "conn": 2,
       "toggle": "own:temp"
     },
     {
-      "id": "nav_bg",
-      "type": "fill",
-      "class": "content",
-      "z": 2,
-      "x": 690,
-      "y": 666,
-      "w": 560,
-      "h": 46,
-      "color": "bg",
-      "toggle": "own:nav",
-      "hole": [
-        709,
-        666,
-        534,
-        46
-      ],
-      "holeWhen": "cc:shown&!own:info",
-      "holeInset": 0,
-      "holeRadius": 0,
-      "conn": 1
-    },
-    {
       "id": "nav",
       "type": "text",
       "z": 5,
-      "x": 690,
-      "y": 682,
-      "w": 540,
-      "h": 26,
+      "x": 691,
+      "y": 658,
+      "w": 539,
+      "h": 54,
       "text": "{{road}}",
-      "font": "wb_cap",
+      "font": "wb_road",
       "color": "fg",
       "align": "center",
       "conn": 1,
       "toggle": "own:nav"
     },
     {
-      "id": "cc_name",
+      "id": "cc_line",
       "type": "text",
+      "ccLine": true,
       "z": 5,
-      "x": 758,
+      "x": 690,
       "y": 627,
-      "w": 420,
-      "h": 26,
-      "text": "{{ccName}}",
-      "font": "wb_cap",
+      "w": 557,
+      "h": 58,
+      "textY": 8,
+      "text": "{{ccHead}}",
+      "font": "wb_msg",
       "color": "fg",
       "align": "center",
       "conn": 2,
-      "toggle": "own:info"
-    },
-    {
-      "id": "cc_desc",
-      "type": "text",
-      "z": 5,
-      "x": 758,
-      "y": 671,
-      "w": 420,
-      "h": 26,
-      "text": "{{ccDesc}}",
-      "font": "wb_cap",
-      "color": "dim",
-      "align": "center",
-      "conn": 2,
-      "toggle": "own:info"
+      "toggle": "own:info",
+      "rate": 50
     },
     {
       "id": "mode",
@@ -894,7 +788,7 @@
       "x": 1388,
       "y": 514,
       "w": 240,
-      "h": 25,
+      "h": 22,
       "text": "{{mode}}",
       "font": "wb_capb",
       "color": "fg",

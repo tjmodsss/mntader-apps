@@ -48,6 +48,7 @@ function sideOfCountry(code) {
 }
 const QUERY_MS = 1000;
 const RAW_FILE = process.env.NAV_CARD_RAW || '/dev/shm/nav-card/headunit-raw.json';
+const RAW_MS = 5000;              // the raw file (every field's latest value, for a bug report): at most this often
 
 const TURN = { 0: 'NONE', 1: 'STRAIGHT_ON', 2: 'LEFT', 3: 'SLIGHT_LEFT', 4: 'HARD_LEFT', 5: 'RIGHT', 6: 'SLIGHT_RIGHT', 7: 'HARD_RIGHT', 8: 'UTURN_RIGHT', 9: 'UTURN_LEFT' };
 const BRANCH = { 1: 'BRANCH_LEFT', 2: 'BRANCH_RIGHT', 3: 'HIGHWAY_IN_LEFT', 4: 'HIGHWAY_IN_RIGHT', 5: 'HIGHWAY_IN_STRAIGHT', 6: 'HIGHWAY_OUT_LEFT', 7: 'HIGHWAY_OUT_RIGHT', 8: 'HIGHWAY_OUT_STRAIGHT', 9: 'FORK_LEFT', 10: 'FORK_RIGHT', 11: 'TRIPLE_FORK_LEFT', 12: 'TRIPLE_FORK_RIGHT', 13: 'TRIPLE_FORK_STRAIGHT', 14: 'OVERPASS', 15: 'UNDERPASS' };
@@ -350,22 +351,56 @@ const brief = (v, n) => {
  * it), 'error', 'field' (a notified field's value) or 'card' (the card's guidance when it changes).
  */
 const MAX_LOG = 4000000;
-function eventLog(dir, now, max) {
+// how the log reaches the disk while driving: gathered, then appended in one go every LOG_FLUSH_MS or past
+// LOG_FLUSH_BYTES, in the background - a record a second written at once blocked the app on the unit's flash
+const LOG_FLUSH_MS = 10000, LOG_FLUSH_BYTES = 65536;
+/**
+ * flushMs: 0 (the default here, and the tests) writes each record at once; the head unit's reader passes
+ * LOG_FLUSH_MS. flush() writes what waits, at once (the app stopping).
+ */
+function eventLog(dir, now, max, flushMs, timers) {
     max = max || MAX_LOG;
+    timers = timers || { setTimeout, clearTimeout };
     const file = path.join(dir || '/dev/shm/nav-card', 'cluster_nav_card-events.jsonl');
-    let n = 0, size = -1, err = '';
+    let n = 0, size = -1, err = '', buf = [], bufBytes = 0, timer = null, writing = false;
     const strip = (k, x) => (k === 'iconHandle' || k === 'serviceIcons' || k === 'symbolData' ? '[icon]' : x);
+    const open = () => { if (size < 0) { mkdirp(path.dirname(file)); try { size = fs.statSync(file).size; } catch (e) { size = 0; } } };
+    /** The waiting lines, and the file moved aside first when they would take it past max. */
+    const take = () => {
+        open();
+        const text = buf.join('');
+        buf = []; bufBytes = 0;
+        if (size + text.length > max) { try { fs.renameSync(file, file.replace(/\.jsonl$/, '.1.jsonl')); } catch (e) { /* none yet */ } size = 0; }
+        size += text.length;
+        return text;
+    };
+    const flushSync = () => {
+        if (timer) { timers.clearTimeout(timer); timer = null; }
+        if (!bufBytes) return;
+        try { fs.appendFileSync(file, take()); err = ''; } catch (e) { err = String(e.message || e); }
+    };
+    const flushAsync = () => {
+        timer = null;
+        if (!bufBytes) return;
+        if (writing) { timer = timers.setTimeout(flushAsync, 1000); return; }     // the last append still going
+        let text;
+        try { text = take(); } catch (e) { err = String(e.message || e); return; }
+        writing = true;
+        fs.appendFile(file, text, (e) => { writing = false; err = e ? String(e.message || e) : ''; });
+    };
     return {
         file,
         write(rec) {
             try {
-                if (size < 0) { mkdirp(path.dirname(file)); try { size = fs.statSync(file).size; } catch (e) { size = 0; } }
                 const t = now(), line = JSON.stringify(Object.assign({ t, at: new Date(t).toISOString() }, rec), strip) + '\n';
-                if (size + line.length > max) { try { fs.renameSync(file, file.replace(/\.jsonl$/, '.1.jsonl')); } catch (e) { /* none yet */ } size = 0; }
-                fs.appendFileSync(file, line);
-                size += line.length; n++; err = '';
+                buf.push(line); bufBytes += line.length; n++;
+                if (!flushMs) return flushSync();
+                if (bufBytes >= LOG_FLUSH_BYTES) { if (timer) timers.clearTimeout(timer); return flushAsync(); }
+                if (!timer) timer = timers.setTimeout(flushAsync, flushMs);
             } catch (e) { err = String(e.message || e); }
+            return undefined;
         },
+        flush: flushSync,
         status: () => (err ? 'not written: ' + err.slice(0, 60) : n + ' record(s) in ' + file),
     };
 }
@@ -387,7 +422,9 @@ function headunit(ctx, opts) {
     const carSide = () => ccpSide || sideOfCountry(ccpCountry);
     const forcedSide = () => { const v = ctx.settings && ctx.settings.get('trafficSide'); return v === 'left' ? 'LEFT' : v === 'right' ? 'RIGHT' : ''; };
     const logOn = () => !ctx.settings || ctx.settings.get('eventLog') !== 'off';
-    const elog = opts.eventLog || eventLog(opts.logDir || ctx.dataDir, now);
+    const elog = opts.eventLog || eventLog(opts.logDir || ctx.dataDir, now, 0, opts.logFlushMs === undefined ? LOG_FLUSH_MS : opts.logFlushMs);
+    const flushLog = () => { if (elog.flush) elog.flush(); };
+    process.on('exit', flushLog);
     let lastAns = '', lastAnsT = -Infinity, lastCard = '';
     const rec = (r) => { if (logOn()) elog.write(r); };
     const bool = (v) => (v === true || v === 1 ? true : v === false || v === 0 ? false : null);   // anything else: unknown
@@ -406,7 +443,7 @@ function headunit(ctx, opts) {
         e.n++; e.v = v;
         if (e.n <= 3) log.info('headunit ' + key + ' #' + e.n + ': ' + brief(v, 500));
         if (!/^GuidanceEventList\./.test(key)) rec({ kind: 'field', key, n: e.n, v });
-        if (!rawTimer && !stopped) rawTimer = (opts.setTimeout || setTimeout)(writeRaw, 1000);
+        if (!rawTimer && !stopped) rawTimer = (opts.setTimeout || setTimeout)(writeRaw, RAW_MS);
     };
     const field = (name) => (v) => {
         const x = unwrap(v, name);
@@ -550,6 +587,8 @@ function headunit(ctx, opts) {
         },
         stop() {
             stopped = true;
+            flushLog();
+            process.removeListener('exit', flushLog);
             if (rawTimer) (opts.clearTimeout || clearTimeout)(rawTimer);
             if (qTimer) (opts.clearInterval || clearInterval)(qTimer);
             if (sub) sub.shutdown();

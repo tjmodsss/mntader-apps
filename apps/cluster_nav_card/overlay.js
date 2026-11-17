@@ -84,6 +84,16 @@ function drawLayer(cv, g, units, place, region, fit) {
 }
 
 /**
+ * What the card shows for g with these settings, as a string: the layer is drawn again only when it changes. The
+ * distance as it is written ("450 m"), not in metres: it changes a few times a second, the text once a second.
+ */
+function cardKey(g, units, place, region, fit) {
+    const [num, unit] = C.distance(g.distanceM, units);
+    return JSON.stringify([g.maneuver, g.exit, g.turnDeg, g.clockwise, num, unit, g.road, g.shield, g.shields, g.lanes,
+        g.palette, !!g.estimated, units, place, region, fit]);
+}
+
+/**
  * ctx: settings ("show": off | cluster, "place", "size", "units"), log. guidance(): source.js now().
  * opts (tests): statusPath, ClusterRender, setInterval, clearInterval, now.
  */
@@ -92,7 +102,7 @@ function startOverlay(ctx, guidance, opts) {
     const { settings, log } = ctx;
     const statusPath = opts.statusPath || STATUS, now = opts.now || Date.now;
     let CR = opts.ClusterRender;
-    let cr = null, ref = 0, geo = '', cv = null, last = null, visible = false, lastT = 0;
+    let cr = null, ref = 0, geo = '', cv = null, last = null, visible = false, lastT = 0, shownKey = '';
     let map = { showing: false, target: null }, statusText = '', warned = '';
     const warnOnce = (m) => { if (m !== warned) { warned = m; log.warn('overlay: ' + m); } };
     const on = () => settings.get('show') !== 'off';
@@ -124,7 +134,7 @@ function startOverlay(ctx, guidance, opts) {
             try { CR = require('./cluster_render_client').ClusterRender; } catch (e) { warnOnce('no render client: ' + e.message); return null; }
         }
         cr = new CR('cluster_nav_card');
-        cr.on('ready', () => { last = null; tick(); });
+        cr.on('ready', () => { last = null; shownKey = ''; tick(); });
         cr.on('layer', (r, state, reason) => { if (r === ref && state === 'error') warnOnce('layer: ' + (reason || state)); });
         cr.on('refused', (op, r, reason) => warnOnce(op + ' refused: ' + reason));
         cr.on('error', (e) => warnOnce(String(e && e.message || e)));
@@ -145,7 +155,7 @@ function startOverlay(ctx, guidance, opts) {
         if (key === geo && ref) return ref;
         if (!client()) return 0;
         if (ref) cr.drop(ref);
-        geo = key; visible = false; last = null;
+        geo = key; visible = false; last = null; shownKey = '';
         cv = new Canvas(b.w, b.h);
         ref = cr.image({ target: map.target, klass: 'overlay', z: 12, x: b.x, y: b.y, w: b.w, h: b.h, iw: b.w, ih: b.h, visible: false });
         if (!ref) warnOnce('the renderer refused a ' + b.w + 'x' + b.h + ' layer');
@@ -160,7 +170,12 @@ function startOverlay(ctx, guidance, opts) {
         const tm = now();
         if (visible && tm - lastT < UPDATE_MS - 30) return undefined;
         lastT = tm;
-        drawLayer(cv, g, settings.get('units'), settings.get('place') || 'topCenter', settings.get('shields') || 'nl', settings.get('width') === 'fit');
+        const units = settings.get('units'), place = settings.get('place') || 'topCenter', region = settings.get('shields') || 'nl', fit = settings.get('width') === 'fit';
+        // the same card as on the cluster now: nothing to draw, nothing to send (most ticks: the text changes once a second)
+        const key = cardKey(g, units, place, region, fit);
+        if (visible && last && key === shownKey) return undefined;
+        shownKey = key;
+        drawLayer(cv, g, units, place, region, fit);
         const d = cv.d;
         if (!last) { cr.pixels(ref, null, Buffer.from(d.buffer, d.byteOffset, d.length)); last = Uint8Array.from(d); }
         else {
@@ -197,4 +212,4 @@ function startOverlay(ctx, guidance, opts) {
     };
 }
 
-module.exports = { startOverlay, mapRect, cardRect, diffRect, drawLayer, SCENES, SIZES, TOPS };
+module.exports = { startOverlay, mapRect, cardRect, diffRect, drawLayer, cardKey, SCENES, SIZES, TOPS };
