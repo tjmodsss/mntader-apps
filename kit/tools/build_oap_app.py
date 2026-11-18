@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """build_oap_app.py [--language xx] <app> - builds an app that has mgu-app.json (not app.json) into
 dist/<id>@<ver>.mgu, the bundle deploy/mgu-app-install.sh installs, like build.py does for the kit's
-own apps. Used for apps/tjm_waze_cluster (TJM Waze Cluster, from robertn_waze_cluster).
+own apps. Used for apps/tjm_waze_cluster (MNTADER Waze Cluster, from robertn_waze_cluster).
 
   1. links the app against the car's own oap-sdk (kit/tools/link_oap_app.js, Node.js), with the
      x_call package the installer's "Extract SDK" keeps in oap-sdk/donor/
@@ -25,7 +25,7 @@ def donors():
     d = os.path.join(SDK, 'donor')
     found = [p for p in (os.path.join(d, 'x_call.tgz'), os.path.join(d, 'javascript', 'app.js')) if os.path.isfile(p)]
     if not found:
-        sys.exit('ERROR: the car\'s x_call package is missing (oap-sdk/donor/). TJM Waze Cluster is built from it:\n'
+        sys.exit('ERROR: the car\'s x_call package is missing (oap-sdk/donor/). MNTADER Waze Cluster is built from it:\n'
                  '  connect a car, Detect, then press "Extract SDK" once more (it keeps the package now).')
     return found
 

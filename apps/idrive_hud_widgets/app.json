@@ -1,9 +1,9 @@
 {
   "id": "idrive_hud_widgets",
-  "title": "TJM HUD Widgets",
+  "title": "MNTADER HUD Widgets",
   "description": "Gear, shift lights, boost, oil, coolant and intake temperatures, a G-meter, trip figures and the song playing on the windshield HUD, in Classic, M or Night themes",
   "version": "0.15.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB20",
   "iconGlyph": "HUD",
   "signals": {
@@ -90,7 +90,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM HUD Widgets",
+      "title": "MNTADER HUD Widgets",
       "buttons": [
         [
           "BTN_SETTINGS",

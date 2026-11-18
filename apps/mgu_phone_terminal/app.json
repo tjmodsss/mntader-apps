@@ -1,16 +1,16 @@
 {
   "id": "mgu_phone_terminal",
-  "title": "TJM Phone Terminal",
+  "title": "MNTADER Phone Terminal",
   "description": "Temporary phone-browser terminal with QR pairing, command output, and file downloads.",
   "version": "0.1.7",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB19",
   "iconGlyph": ">_",
   "screens": [
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Phone Terminal",
+      "title": "MNTADER Phone Terminal",
       "buttons": [
         [
           "BTN_START",

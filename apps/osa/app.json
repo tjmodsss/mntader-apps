@@ -1,17 +1,17 @@
 {
   "id": "osa",
-  "title": "TJM Oil Service",
+  "title": "MNTADER Oil Service",
   "description": "Engine, coolant and transmission oil temperature monitoring with live warm-up estimates and locally stored service history",
   "version": "0.2.45",
   "settingsBeforeLast": true,
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB04",
   "iconGlyph": "temp",
   "screens": [
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Oil Service",
+      "title": "MNTADER Oil Service",
       "buttons": [
         [
           "BTN_PAGE",

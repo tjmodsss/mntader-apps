@@ -1,9 +1,9 @@
 {
   "id": "telemetry_studio",
-  "title": "TJM Telemetry Studio",
+  "title": "MNTADER Telemetry Studio",
   "description": "Full-screen categorized live data from powertrain, thermal, chassis, tyre, climate and electrical sensors",
   "version": "0.2.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB0F",
   "iconGlyph": "gauge",
   "signals": {
@@ -85,7 +85,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Telemetry Studio",
+      "title": "MNTADER Telemetry Studio",
       "buttons": [
         [
           "BTN_PAGE",

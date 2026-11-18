@@ -1,9 +1,9 @@
 {
   "id": "ambient_studio_full",
-  "title": "TJM Ambient Studio",
+  "title": "MNTADER Ambient Studio",
   "description": "Full-screen drive-mode colours and rate-limited ambient-light alerts",
   "version": "0.1.5",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB11",
   "iconGlyph": "AMB",
   "signals": {
@@ -30,7 +30,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Ambient Studio",
+      "title": "MNTADER Ambient Studio",
       "buttons": [
         [
           "BTN_PAGE",

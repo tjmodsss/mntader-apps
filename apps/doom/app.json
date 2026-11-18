@@ -1,6 +1,6 @@
 {
   "id": "doom",
-  "title": "TJM Doom",
+  "title": "MNTADER Doom",
   "description": "Doom (Freedoom: Phase 1) on the iDrive. Main menu with all settings; the game drawn in full resolution across the whole screen, on the controller; BACK returns to the menu and saves",
   "version": "1.7.22",
   "vendor": "custom",
@@ -31,7 +31,7 @@
     {
       "name": "MAIN",
       "kind": "menu",
-      "title": "TJM Doom",
+      "title": "MNTADER Doom",
       "settings": true,
       "items": [
         [
@@ -54,7 +54,7 @@
     {
       "name": "GAME",
       "kind": "canvas",
-      "title": "TJM Doom",
+      "title": "MNTADER Doom",
       "chrome": false,
       "buttons": [
         [

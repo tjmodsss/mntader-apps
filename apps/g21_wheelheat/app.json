@@ -1,10 +1,10 @@
 {
   "id": "g21_wheelheat",
-  "title": "TJM Heating Comfort",
+  "title": "MNTADER Heating Comfort",
   "description": "Automatic seat and steering-wheel heating with adjustable settings, manual controls, and diagnostic logs.",
   "version": "0.4.20",
   "mguAppStartType": "autostart",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB1B",
   "iconGlyph": "LHZ",
   "signals": {

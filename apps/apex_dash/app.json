@@ -1,9 +1,9 @@
 {
   "id": "apex_dash",
-  "title": "TJM E39 M5 Cluster",
+  "title": "MNTADER E39 M5 Cluster",
   "description": "Authentic BMW E39 M5 digital cluster for iDrive 7 and 8 (MGU) by Marko DEV. Features 5-needle startup sweep self-test, Check Control OBC display, dynamic LED warm-up arch, 7/8-speed Steptronic/DKG selector, and Service-Interval indicator.",
   "version": "1.2.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB31",
   "iconGlyph": "APX",
   "signals": {

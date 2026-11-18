@@ -1,9 +1,9 @@
 {
   "id": "g21_ambient",
-  "title": "TJM Ambient Lighting",
+  "title": "MNTADER Ambient Lighting",
   "description": "Choose ambient-light colors, configure zones, and save presets. Vehicle color control is experimental.",
   "version": "0.4.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB1A",
   "iconGlyph": "RGB",
   "signals": {

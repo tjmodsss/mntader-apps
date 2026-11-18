@@ -1,9 +1,9 @@
 {
   "id": "cluster_themes",
-  "title": "TJM Cluster Themes",
+  "title": "MNTADER Cluster Themes",
   "description": "Redraws the instrument cluster: GT3 race dash, M-style, M view, Vector (with a music panel), Sport, Minimal, Track, Drag, Rally, Retro 80s, Cruise, Dyno (BMW-coloured readout tiles) or Ribbon (with holiday editions), with shift lights, boost, temps, tyres, a G-meter and a 0-60 timer",
   "version": "0.19.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB1F",
   "iconGlyph": "CLU",
   "signals": {
@@ -71,7 +71,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Cluster Themes",
+      "title": "MNTADER Cluster Themes",
       "buttons": [
         [
           "BTN_SETTINGS",

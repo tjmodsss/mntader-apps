@@ -1,9 +1,9 @@
 {
   "id": "front_camera_cluster",
-  "title": "TJM Night Vision Cluster",
+  "title": "MNTADER Night Vision Cluster",
   "description": "Full-screen control for BMW Night Vision and parking-camera projection in the instrument cluster",
   "version": "0.2.1",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB14",
   "iconGlyph": "NVC",
   "signals": {
@@ -15,7 +15,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Night Vision Cluster",
+      "title": "MNTADER Night Vision Cluster",
       "settingsTab": false,
       "buttons": [
         [

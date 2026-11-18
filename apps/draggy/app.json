@@ -1,6 +1,6 @@
 {
   "id": "draggy",
-  "title": "TJM Drag Timer",
+  "title": "MNTADER Drag Timer",
   "description": "0-100, 100-200 and 1/4 mile timer with best times",
   "version": "2.6.0",
   "vendor": "custom",
@@ -23,7 +23,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Drag Timer",
+      "title": "MNTADER Drag Timer",
       "buttons": [
         ["BTN_ACTION", "Reset run"],
         ["BTN_PAGE", "Next page"],

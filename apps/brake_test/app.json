@@ -1,6 +1,6 @@
 {
   "id": "brake_test",
-  "title": "TJM Brake Test",
+  "title": "MNTADER Brake Test",
   "description": "100-0 and 200-0 braking distance, peak decel and brake-fade tracking",
   "version": "1.5.21",
   "vendor": "custom",
@@ -20,7 +20,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Brake Test",
+      "title": "MNTADER Brake Test",
       "buttons": [
         ["BTN_ACTION", "Cancel run"],
         ["BTN_PAGE", "Next page"],

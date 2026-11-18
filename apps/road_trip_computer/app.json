@@ -1,9 +1,9 @@
 {
   "id": "road_trip_computer",
-  "title": "TJM Road Trip Computer",
+  "title": "MNTADER Road Trip Computer",
   "description": "Full-screen trip history with fuel use, fuel price, cost, range, outside temperature and GPS elevation",
   "version": "1.0.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB0A",
   "iconGlyph": "gauge",
   "signals": {
@@ -86,7 +86,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Road Trip Computer",
+      "title": "MNTADER Road Trip Computer",
       "buttons": [
         [
           "BTN_ACTION",

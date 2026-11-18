@@ -1,9 +1,9 @@
 {
   "id": "vehicle_health",
-  "title": "TJM Vehicle Health",
+  "title": "MNTADER Vehicle Health",
   "description": "Read-only overview of tyres, fluids, temperatures, service requirements, Check Control, DPF and current faults",
   "version": "0.1.9",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB0E",
   "iconGlyph": "health",
   "signals": {
@@ -76,7 +76,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Vehicle Health",
+      "title": "MNTADER Vehicle Health",
       "settingsTab": false,
       "buttons": [
         [

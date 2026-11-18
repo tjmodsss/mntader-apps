@@ -1,4 +1,4 @@
-# TJM: English only - the Chinese and Korean checks and the tests of Ambient config (not in the TJM apps) are left out.
+# MNTADER: English only - the Chinese and Korean checks and the tests of Ambient config (not in the MNTADER apps) are left out.
 name: App tests
 
 # The kit runtime and the apps' synthetic checks (no SDK, renderer or car needed). Live Adjustments and

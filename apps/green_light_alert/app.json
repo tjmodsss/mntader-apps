@@ -1,9 +1,9 @@
 {
   "id": "green_light_alert",
-  "title": "TJM Green Light Alert",
+  "title": "MNTADER Green Light Alert",
   "description": "Monitors the raw KAFAS traffic-light camera feed, with BMW's validated display signal as a fallback",
   "version": "0.2.5",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB10",
   "iconGlyph": "●)))",
   "signals": {
@@ -47,7 +47,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Green Light Alert",
+      "title": "MNTADER Green Light Alert",
       "settingsTab": false,
       "buttons": [
         [

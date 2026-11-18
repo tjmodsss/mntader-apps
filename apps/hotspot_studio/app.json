@@ -1,9 +1,9 @@
 {
   "id": "hotspot_studio",
-  "title": "TJM Hotspot Studio",
+  "title": "MNTADER Hotspot Studio",
   "description": "Provides Huawei Internet proxies on BMW's hotspot and opens a timed single-client ENET relay on request",
   "version": "0.1.5",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB13",
   "iconGlyph": "NET",
   "signals": {
@@ -21,7 +21,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Hotspot Studio",
+      "title": "MNTADER Hotspot Studio",
       "buttons": [
         [
           "BTN_PAGE",

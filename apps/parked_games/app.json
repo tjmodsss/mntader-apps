@@ -1,9 +1,9 @@
 {
   "id": "parked_games",
-  "title": "TJM Parked Games",
+  "title": "MNTADER Parked Games",
   "description": "Small games for when the car is parked, played with the iDrive knob (and the touchscreen)",
   "version": "0.2.2",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB2C",
   "iconGlyph": "PG",
   "signals": {
@@ -18,7 +18,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Parked Games",
+      "title": "MNTADER Parked Games",
       "bar": false,
       "buttons": []
     }

@@ -1,10 +1,10 @@
 {
   "id": "adam_mtrack",
-  "title": "TJM M Track Cluster",
+  "title": "MNTADER M Track Cluster",
   "description": "An M Track style cover on the instrument cluster in Sport+: bar tachs to 7,000 rpm, gear and mph, side panels, shift-light slats. Off until you turn it on",
   "version": "0.1.7",
   "mguAppStartType": "autostart",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB29",
   "iconGlyph": "rpm",
   "signals": {
@@ -62,7 +62,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM M Track Cluster",
+      "title": "MNTADER M Track Cluster",
       "buttons": [
         [
           "BTN_COVER",

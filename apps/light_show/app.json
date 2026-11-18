@@ -1,9 +1,9 @@
 {
   "id": "light_show",
-  "title": "TJM Light Show",
+  "title": "MNTADER Light Show",
   "description": "Flash the exterior lamps in patterns through the body controller's lamp test functions: emergency patterns (wig-wag and more, on lamps that are normally off while driving) and light shows. A lamp check finds which lamps the car lets the app switch.",
   "version": "0.5.2",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB25",
   "iconGlyph": "lights",
   "signals": {
@@ -27,7 +27,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Light Show",
+      "title": "MNTADER Light Show",
       "buttons": [
         [
           "BTN_RUN",

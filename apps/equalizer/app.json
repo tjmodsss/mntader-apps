@@ -1,9 +1,9 @@
 {
   "id": "equalizer",
-  "title": "TJM Equalizer",
+  "title": "MNTADER Equalizer",
   "description": "Experimental seven-band audio equalizer with adjustable filters and saved presets.",
   "version": "0.2.4",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB1C",
   "iconGlyph": "EQ",
   "signals": {
@@ -42,7 +42,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Equalizer",
+      "title": "MNTADER Equalizer",
       "buttons": [
         [
           "BTN_NEXT",

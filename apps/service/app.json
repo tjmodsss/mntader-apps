@@ -1,6 +1,6 @@
 {
   "id": "service",
-  "title": "TJM Service",
+  "title": "MNTADER Service",
   "description": "Service requirements from the instrument cluster: oil, brakes, brake fluid, vehicle check, inspection - distance, date, details; brake fluid and vehicle check reset",
   "version": "1.6.2",
   "vendor": "custom",
@@ -24,7 +24,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Service",
+      "title": "MNTADER Service",
       "buttons": [
         ["BTN_SELECT", "Next item"],
         ["BTN_DETAILS", "Details"],

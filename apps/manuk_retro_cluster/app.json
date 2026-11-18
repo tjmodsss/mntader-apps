@@ -1,9 +1,9 @@
 {
   "id": "manuk_retro_cluster",
-  "title": "TJM Retro Cluster",
+  "title": "MNTADER Retro Cluster",
   "description": "Самостоятельная приборная панель Retro с настройками iDrive, русским и английским интерфейсом и раздельными единицами измерения.",
   "version": "0.3.4",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB30",
   "iconGlyph": "RC",
   "mguAppStartType": "manually",
@@ -63,7 +63,7 @@
     {
       "name": "MAIN",
       "kind": "menu",
-      "title": "TJM Retro Cluster",
+      "title": "MNTADER Retro Cluster",
       "items": [
         [
           "checkbox",

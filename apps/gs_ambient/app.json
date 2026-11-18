@@ -1,10 +1,10 @@
 {
   "id": "gs_ambient",
-  "title": "TJM Ambient Colour Wheel",
+  "title": "MNTADER Ambient Colour Wheel",
   "description": "Farbrad für die Ambientebeleuchtung: zwei Zonen (oben und unten), Helligkeit, Farbverlauf, Favoritenlauf, Überblenden, Atmen und Favoritengruppen. Standard ist die Simulation. BDC-Licht schreibt über den bestätigten Kurzzeit-Weg und ein Comfort-Dienst hält die Farbe, nachdem die Oberfläche zu ist, bis das Auto aus ist",
   "version": "0.1.9",
   "startType": "autostart",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB2E",
   "iconGlyph": "Am",
   "signals": {
@@ -44,7 +44,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Ambient Colour Wheel",
+      "title": "MNTADER Ambient Colour Wheel",
       "buttons": [
         [
           "BTN_PAGE",

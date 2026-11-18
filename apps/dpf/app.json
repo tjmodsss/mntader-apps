@@ -1,16 +1,16 @@
 {
   "id": "dpf",
-  "title": "TJM DPF Status",
+  "title": "MNTADER DPF Status",
   "description": "Read-only diesel particulate filter status monitoring",
   "version": "0.1.30",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB03",
   "iconGlyph": "temp",
   "screens": [
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM DPF Status",
+      "title": "MNTADER DPF Status",
       "buttons": [
         [
           "BTN_SETTINGS",

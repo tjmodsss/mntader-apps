@@ -1,5 +1,5 @@
-# TJM M Track Cluster
+# MNTADER M Track Cluster
 
-Imported into the TJM apps from https://github.com/pinguinooo/idrive7-apps.git (commit 82bea95add76), app `adam_mtrack`,
-"M Track Cluster" by its author (MIT, see LICENSE). TJM changes (2026-11-13): the name
-"TJM M Track Cluster", the TJM icon, vendor and logging id.
+Imported into the MNTADER apps from https://github.com/pinguinooo/idrive7-apps.git (commit 82bea95add76), app `adam_mtrack`,
+"M Track Cluster" by its author (MIT, see LICENSE). MNTADER changes (2026-11-13): the name
+"MNTADER M Track Cluster", the MNTADER icon, vendor and logging id.

@@ -167,7 +167,7 @@ def main():
     OUT = os.path.join(DIST, name)
     archive = os.path.join(DIST, name + '.tar.gz')
     # an app has app.json (the kit's own apps, build.py) or mgu-app.json (apps linked against the
-    # car's oap-sdk, such as TJM Waze Cluster: build_oap_app.py)
+    # car's oap-sdk, such as MNTADER Waze Cluster: build_oap_app.py)
     has = lambda d, f: os.path.isfile(os.path.join(ROOT, 'apps', d, f))
     apps = args.apps or sorted(d for d in os.listdir(os.path.join(ROOT, 'apps'))
                                   if has(d, 'app.json') or (has(d, 'mgu-app.json')

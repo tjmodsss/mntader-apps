@@ -322,7 +322,7 @@ optional_missing() {
         }
         if (!changed) process.exit(0);
         fs.writeFileSync(mf, JSON.stringify(m, null, 1));
-        // TJM: an app built on the SDK (TJM Waze Cluster: mgu-app.json, no kit) has no kit folder for the note
+        // MNTADER: an app built on the SDK (MNTADER Waze Cluster: mgu-app.json, no kit) has no kit folder for the note
         if (fs.existsSync(kitDir)) fs.writeFileSync(lf, JSON.stringify(missing, null, 1));
         for (const i of Object.keys(missing))
             console.error("[mgu-app] WARNING: " + meta.id + ": this unit has no " + i + " - installed without it: " + missing[i]);

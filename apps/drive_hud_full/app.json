@@ -1,9 +1,9 @@
 {
   "id": "drive_hud_full",
-  "title": "TJM Drive HUD",
+  "title": "MNTADER Drive HUD",
   "description": "Full-screen HUD controls: turn arrows, Sport gear/RPM/shift lights and engine warm-up",
   "version": "0.1.6",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB15",
   "iconGlyph": "HUD",
   "signals": {
@@ -31,7 +31,7 @@
       "name": "MAIN",
       "kind": "canvas",
       "settings": true,
-      "title": "TJM Drive HUD",
+      "title": "MNTADER Drive HUD",
       "buttons": [
         [
           "BTN_ENABLE",

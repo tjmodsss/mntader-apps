@@ -1,9 +1,9 @@
 {
   "id": "spotify",
-  "title": "TJM Spotify Connect",
+  "title": "MNTADER Spotify Connect",
   "description": "Spotify Connect cockpit player and library browser for BMW iDrive 7",
   "version": "1.0.29",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB26",
   "iconGlyph": "music",
   "mguInternet": true,
@@ -14,7 +14,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Spotify Connect",
+      "title": "MNTADER Spotify Connect",
       "buttons": [
         [
           "BTN_PAGE",

@@ -1,9 +1,9 @@
 {
   "id": "start_stop_insight",
-  "title": "TJM Start/Stop Insight",
+  "title": "MNTADER Start/Stop Insight",
   "description": "Current and last ten observed Start/Stop inhibition states plus live electrical consumers",
   "version": "0.1.3",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB0D",
   "iconGlyph": "A↻",
   "signals": {
@@ -28,7 +28,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Start/Stop Insight",
+      "title": "MNTADER Start/Stop Insight",
       "settingsTab": false,
       "buttons": [
         [

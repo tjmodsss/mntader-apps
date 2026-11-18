@@ -1,9 +1,9 @@
 {
   "id": "f30_cluster",
-  "title": "TJM F30 Cluster",
+  "title": "MNTADER F30 Cluster",
   "description": "Instrument cluster themes after the F-series 6WB look: Comfort, Sport and Eco Pro, following the drive mode",
   "version": "0.7.18",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB32",
   "iconGlyph": "F30",
   "signals": {
@@ -111,7 +111,7 @@
     {
       "name": "MAIN",
       "kind": "menu",
-      "title": "TJM F30 Cluster",
+      "title": "MNTADER F30 Cluster",
       "settings": "placed",
       "items": [
         [

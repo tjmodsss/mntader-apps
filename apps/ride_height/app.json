@@ -1,9 +1,9 @@
 {
   "id": "ride_height",
-  "title": "TJM Ride Height",
+  "title": "MNTADER Ride Height",
   "description": "Full-screen VDP presets plus direct front/rear air-spring fill and vent control",
   "version": "0.6.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB0B",
   "iconGlyph": "RH",
   "signals": {
@@ -30,7 +30,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Ride Height",
+      "title": "MNTADER Ride Height",
       "buttons": [
         [
           "BTN_PAGE",

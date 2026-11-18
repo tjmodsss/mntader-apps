@@ -1,9 +1,9 @@
 {
   "id": "custom_hud",
-  "title": "TJM Custom HUD",
+  "title": "MNTADER Custom HUD",
   "description": "Speed, gear, shift bar, boost, oil and coolant on the windshield HUD, in Classic, M or Night themes",
   "version": "0.1.56",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB2B",
   "iconGlyph": "HUD",
   "signals": {
@@ -72,7 +72,7 @@
     {
       "name": "MAIN",
       "kind": "menu",
-      "title": "TJM Custom HUD",
+      "title": "MNTADER Custom HUD",
       "settings": true,
       "items": [
         [

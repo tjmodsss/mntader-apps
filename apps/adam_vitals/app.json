@@ -1,9 +1,9 @@
 {
   "id": "adam_vitals",
-  "title": "TJM Engine Vitals",
+  "title": "MNTADER Engine Vitals",
   "description": "Boost, power, torque, gear, oil, coolant and transmission temperatures, with a warm-up guide and turbo cool-down",
   "version": "0.2.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB2A",
   "iconGlyph": "gauge",
   "signals": {
@@ -510,7 +510,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Engine Vitals",
+      "title": "MNTADER Engine Vitals",
       "buttons": [
         [
           "BTN_PAGE",

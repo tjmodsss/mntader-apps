@@ -1,9 +1,9 @@
 {
   "id": "xtraboost_guard",
-  "title": "TJM XtraBoost Guard",
+  "title": "MNTADER XtraBoost Guard",
   "description": "Hamownia drogowa 420 KM (moc i moment vs RPM), detektor stukowego DME (-3.5 st.), 60s peak hold i ochrona B48 dla BMW G30 530e",
   "version": "1.3.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB35",
   "mguHmi": [
     "ID7"
@@ -51,7 +51,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM XtraBoost Guard",
+      "title": "MNTADER XtraBoost Guard",
       "buttons": [
         [
           "BTN_ACTION",

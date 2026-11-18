@@ -1,9 +1,9 @@
 {
   "id": "mdev_homeassistant",
-  "title": "TJM Home Assistant",
+  "title": "MNTADER Home Assistant",
   "description": "See and switch your home from the car, and send the car's data to Home Assistant. Read only until you allow control.",
   "version": "0.1.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB2D",
   "iconGlyph": "HA",
   "internet": true,
@@ -24,7 +24,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Home Assistant",
+      "title": "MNTADER Home Assistant",
       "buttons": [
         [
           "BTN_RELOAD",

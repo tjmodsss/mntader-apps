@@ -1,10 +1,10 @@
 {
   "id": "adam_shiftlights",
-  "title": "TJM Shift Lights",
+  "title": "MNTADER Shift Lights",
   "description": "RPM shift lights on the instrument cluster and HUD, with per-drive-mode thresholds and a cold-engine limit",
   "version": "0.4.5",
   "mguAppStartType": "autostart",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB28",
   "iconGlyph": "rpm",
   "signals": {
@@ -32,7 +32,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Shift Lights",
+      "title": "MNTADER Shift Lights",
       "buttons": [
         [
           "BTN_HUD",

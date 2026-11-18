@@ -1,16 +1,16 @@
 {
   "id": "dimon_battery",
-  "title": "TJM Battery & Electrical",
+  "title": "MNTADER Battery & Electrical",
   "description": "12 V battery monitor: voltage, current, charge, state of health and temperature, with a health verdict",
   "version": "1.0.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB02",
   "iconGlyph": "battery",
   "screens": [
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Battery & Electrical",
+      "title": "MNTADER Battery & Electrical",
       "buttons": [
         [
           "BTN_SETTINGS",

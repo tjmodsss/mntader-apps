@@ -1,10 +1,10 @@
 {
   "id": "mgu_video_hub",
-  "title": "TJM Video Hub",
+  "title": "MNTADER Video Hub",
   "description": "Play local videos and open YouTube links while parked. Extra playback tools may be required.",
   "version": "0.2.0",
   "mguInternet": true,
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB1D",
   "iconGlyph": "VIDEO",
   "cpuLimit": 80,
@@ -18,7 +18,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Video Hub",
+      "title": "MNTADER Video Hub",
       "buttons": [
         [
           "BTN_PAGE",

@@ -1,9 +1,9 @@
 {
   "id": "dimon_track_mode",
-  "title": "TJM Track Mode",
+  "title": "MNTADER Track Mode",
   "description": "Lap timer with sectors, best lap and live delta",
   "version": "1.0.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB01",
   "iconGlyph": "track",
   "signals": {
@@ -18,7 +18,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Track Mode",
+      "title": "MNTADER Track Mode",
       "buttons": [
         [
           "BTN_ACTION",

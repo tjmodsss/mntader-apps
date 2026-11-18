@@ -250,7 +250,7 @@ def build_ui(spec, language='en', hmi='ID7'):
             setting_item(s, items)
         settings_tail(items)
 
-    # TJM (from bimmer-lab): one setting's row, also placed on its own by ["setting", key] in a menu
+    # MNTADER (from bimmer-lab): one setting's row, also placed on its own by ["setting", key] in a menu
     def setting_item(s, items):
         if True:
             name = 'SET_' + s['key'].upper()
@@ -666,7 +666,7 @@ def build(app_id, language='en', preview_only=False):
     # app code
     fetch_assets(adir, spec.get('assets', []))
     for f in os.listdir(adir):
-        # TJM: an app's own kit/ (kit modules it was written for, laid over the kit below), hidden files,
+        # MNTADER: an app's own kit/ (kit modules it was written for, laid over the kit below), hidden files,
         # local dependencies and local secrets are never part of the app's files
         if f == 'kit' or f.startswith('.') or f in ('node_modules', '__pycache__') or f.endswith(('_auth.json', '_push.json')):
             continue
@@ -676,7 +676,7 @@ def build(app_id, language='en', preview_only=False):
             # files the app reads as they are (doom: the game as WebAssembly, its data, its licences)
             shutil.copy(os.path.join(adir, f), os.path.join(src, 'javascript', f))
         elif os.path.isdir(os.path.join(adir, f)) and f in spec.get('codeFolders', []):
-            # TJM: a folder of code the app requires (app.json "codeFolders", e.g. Custom HUD's engine/), copied as it is
+            # MNTADER: a folder of code the app requires (app.json "codeFolders", e.g. Custom HUD's engine/), copied as it is
             shutil.copytree(os.path.join(adir, f), os.path.join(src, 'javascript', f), dirs_exist_ok=True)
         elif os.path.isdir(os.path.join(adir, f)):
             # data folders go along as one compressed file, read with kit/runtime/pack.js
@@ -703,7 +703,7 @@ def build(app_id, language='en', preview_only=False):
             shutil.copytree(p, os.path.join(src, 'javascript', 'kit', f))
         else:
             shutil.copy(p, os.path.join(src, 'javascript', 'kit', f))
-    # TJM: apps imported from other kit versions bring the kit modules they were written for (apps/<id>/kit/):
+    # MNTADER: apps imported from other kit versions bring the kit modules they were written for (apps/<id>/kit/):
     # they replace the kit's own for that app only
     own_kit = os.path.join(adir, 'kit')
     if os.path.isdir(own_kit):

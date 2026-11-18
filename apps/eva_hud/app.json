@@ -1,9 +1,9 @@
 {
   "id": "eva_hud",
-  "title": "TJM EVA HUD",
+  "title": "MNTADER EVA HUD",
   "description": "NERV battle display on the windshield HUD and the instrument cluster: giant gear, rev bar, speed and full-screen title-card alerts",
   "version": "0.5.3",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB21",
   "iconGlyph": "EVA",
   "credits": {
@@ -51,7 +51,7 @@
     {
       "name": "MAIN",
       "kind": "menu",
-      "title": "TJM EVA HUD",
+      "title": "MNTADER EVA HUD",
       "settings": true,
       "items": [
         [

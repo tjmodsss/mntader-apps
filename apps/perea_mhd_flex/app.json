@@ -1,9 +1,9 @@
 {
   "id": "perea_mhd_flex",
-  "title": "TJM Flex Fuel",
+  "title": "MNTADER Flex Fuel",
   "description": "Ethanol content (Active and CAN) read from an MHD-flashed DME over the car's own diagnostic link, the fuel in the tank (the DME's tank halves or the cluster), and how much ethanol to add to reach a target blend; the Active dial can also show the DME's own alcohol percentage (22 550D). Read-only; the addresses come from a profile per DME program family",
   "version": "1.6.0",
-  "vendor": "TJM",
+  "vendor": "MNTADER",
   "loggingId": "OB17",
   "iconGlyph": "E85",
   "signals": {
@@ -25,7 +25,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "TJM Flex Fuel",
+      "title": "MNTADER Flex Fuel",
       "buttons": [
         [
           "BTN_SETTINGS",

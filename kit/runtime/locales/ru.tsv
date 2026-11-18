@@ -1,26 +1,26 @@
 # English<TAB>Русский. Только отображаемый текст; поля протокола и значения настроек не изменяются.
 M Vitals	M Vitals
-TJM Vitals	TJM Vitals
+MNTADER Vitals	MNTADER Vitals
 Redline	Обороты
-TJM Redline	TJM Обороты
+MNTADER Redline	MNTADER Обороты
 Virtual Dyno	Диностенд
-TJM Virtual Dyno	TJM Диностенд
+MNTADER Virtual Dyno	MNTADER Диностенд
 Brake Test	Тест тормозов
-TJM Brake Test	TJM Тест тормозов
+MNTADER Brake Test	MNTADER Тест тормозов
 Drag Timer	Драг-таймер
-TJM Drag Timer	TJM Драг-таймер
+MNTADER Drag Timer	MNTADER Драг-таймер
 G-Force	Перегрузка
-TJM G-Force	TJM Перегрузка
+MNTADER G-Force	MNTADER Перегрузка
 Warm-Up	Прогрев
-TJM Warm-Up	TJM Прогрев
+MNTADER Warm-Up	MNTADER Прогрев
 Fault Scanner	Сканер ошибок
-TJM Fault Scanner	TJM Сканер ошибок
+MNTADER Fault Scanner	MNTADER Сканер ошибок
 eDrive	eDrive
-TJM eDrive	TJM eDrive
+MNTADER eDrive	MNTADER eDrive
 Service	Обслуживание
-TJM Service	TJM Обслуживание
+MNTADER Service	MNTADER Обслуживание
 Doom	Doom
-TJM Doom	TJM Doom
+MNTADER Doom	MNTADER Doom
 Settings	Настройки
 Version	Версия
 Next page	Следующая страница
@@ -850,9 +850,9 @@ ambient	снаружи
 power distribution	распределение мощности
 s (cell core), else the car	с (температура ячеек), иначе данные автомобиля
 Engine Config	Настройка двигателя
-TJM Engine Config	TJM Настройка двигателя
+MNTADER Engine Config	MNTADER Настройка двигателя
 Transmission Config	Настройка АКПП
-TJM Transmission Config	TJM Настройка АКПП
+MNTADER Transmission Config	MNTADER Настройка АКПП
 Open	Открыть
 Close	Закрыть
 OEM	Штатно
@@ -1266,7 +1266,7 @@ overdue	просрочено
 
 # Live Data: страницы, макеты, поездки и настройки.
 Live Data	Живые данные
-TJM Live Data	TJM Живые данные
+MNTADER Live Data	MNTADER Живые данные
 Gauges	Приборы
 Gauge	Прибор
 New screen	Новый экран

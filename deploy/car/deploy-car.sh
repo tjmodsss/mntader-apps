@@ -165,7 +165,7 @@ platform_noreg() {  # the apps in uids.txt without a registry entry, one per lin
         [ -n "$name" ] && [ ! -f "$R/$name.json" ] && echo "$name"
     done < "$U"
 }
-# TJM: a BMW app in uids.txt that has no registry entry and stays that way (seen on a car: connected-onboard,
+# MNTADER: a BMW app in uids.txt that has no registry entry and stays that way (seen on a car: connected-onboard,
 # the same after a head-unit reboot) is how that unit is, not MainApp half-way through an install - an install
 # changes the list or the registry within seconds. When nothing changes for a minute (13 readings, 5 s apart),
 # go on: NOREG names those apps, the backup records them and restore accepts exactly those.
