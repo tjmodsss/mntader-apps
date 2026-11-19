@@ -7,6 +7,7 @@ const CONSUMPTION_UNITS = {
     VERBRAUCH_IN_L_S_100KM: 'l100', VERBRAUCH_IN_MPG_UK: 'mpgUk', VERBRAUCH_IN_MPG_US: 'mpgUs', VERBRAUCH_IN_KM_S_L: 'kml',
     1: 'l100', 2: 'mpgUk', 3: 'mpgUs', 4: 'kml',
 };
+const MEDIA_LINE_TYPES = { 1: 'ARTIST', 2: 'ALBUM', 3: 'TITLE' };
 
 function scaled(raw, invalid, factor, offset) {
     return Number.isInteger(raw) && raw >= 0 && raw < invalid ? raw * factor + offset : null;
@@ -21,6 +22,25 @@ function economyMpgUs(raw, unit) {
     if (kind === 'mpgUs') return value;
     if (kind === 'kml') return value * 2.35214583;
     return null;
+}
+
+function mediaLine(value) {
+    return typeof value === 'string' ? value.slice(0, 256).replace(/\s+/g, ' ').trim() : '';
+}
+
+function nowPlaying(metadata) {
+    if (!metadata || typeof metadata !== 'object') return null;
+    const lineType = (value) => MEDIA_LINE_TYPES[value] || String(value || '').toUpperCase();
+    const lines = [
+        [mediaLine(metadata.firstLineText), lineType(metadata.firstLineType)],
+        [mediaLine(metadata.secondLineText), lineType(metadata.secondLineType)],
+    ].filter(([value]) => value);
+    const pick = (predicate) => (lines.find(predicate) || [])[0] || '';
+    const rows = typeof metadata.threeRowText === 'string'
+        ? metadata.threeRowText.slice(0, 512).split(/[\r\n]+/).map(mediaLine).filter(Boolean) : [];
+    const title = pick(([, type]) => type === 'TITLE') || rows[0] || pick(([, type]) => !type || type === '0');
+    const artist = pick(([, type]) => type === 'ARTIST') || rows[1] || pick(([value]) => value !== title);
+    return title ? { title, artist: artist === title ? '' : artist } : null;
 }
 
 class Car {
@@ -51,13 +71,14 @@ class Car {
     }
 
     watch(ctx) {
-        const add = (name, fields, pollMs, readTimeoutMs = 1000, pollByField) => ctx.signals.watch(name, '1', fields, ctx.log, {
-            pollMs, readTimeoutMs, pollByField, shouldPoll: () => !ctx.ui || ctx.ui.isVisible('MAIN'),
-        }).catch((error) => ctx.log.warn('Signal unavailable: ' + name + ' ' + error.message));
+        const add = (name, fields, pollMs, { instance = '1', readTimeoutMs = 1000, pollByField } = {}) =>
+            ctx.signals.watch(name, instance, fields, ctx.log, {
+                pollMs, readTimeoutMs, pollByField, shouldPoll: () => !ctx.ui || ctx.ui.isVisible('MAIN'),
+            }).catch((error) => ctx.log.warn('Signal unavailable: ' + name + ' ' + error.message));
 
         add('de.bmw.infotainment.vehicle.Vehicle2', {
             statusCarSpeed2: (v) => this.put('speed', scaled(v && v.speedVehicleCentreOfGravity, 65535, 1 / 64, 0)),
-        }, 150, 350);
+        }, 150, { readTimeoutMs: 350 });
         add('de.bmw.infrastructure.VehicleInformation', {
             statusGearboxDrive: (v) => {
                 const x = v && v.statusActualStageDrive;
@@ -74,7 +95,7 @@ class Car {
                 this.put('coolant', scaled(v && v.temperatureEngineDrive, 255, 1, -48));
                 this.put('oil', scaled(v && v.temperatureEngineOilDrive, 255, 1, -48));
             },
-        }, 200, 450, { statusEngineTemperature: 2500 });
+        }, 200, { readTimeoutMs: 450, pollByField: { statusEngineTemperature: 2500 } });
         add('de.bmw.infotainment.KombiIF', {
             statusRangeTankStatus: (v) => {
                 this.put('range', scaled(v && v.range, 4095, 1, 0));
@@ -95,6 +116,14 @@ class Car {
             statusTyrePressure: (v) => this.put('tyres', ['FL', 'FR', 'RL', 'RR'].map((key) =>
                 scaled(v && v['actualValuePressureTyre' + key + 'H'], 65532, 0.1, 0))),
         }, 5000);
+        add('de.bmw.infotainment.hmi.hmimediastate.HmiMediaState', {
+            playerMetadata: (value) => {
+                const sink = value && value.sink;
+                if (sink === undefined || sink === 0 || sink === 'FRONT' || !value) {
+                    this.put('media', nowPlaying(value));
+                }
+            },
+        }, 3000, { instance: 'HMI_CID' });
     }
 }
 
